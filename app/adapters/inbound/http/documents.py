@@ -27,9 +27,7 @@ async def ingest_document(
     if not content:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="empty upload")
     if len(content) > settings.MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="file too large"
-        )
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="file too large")
     job_id = request.app.state.container.ingest.execute(
         tenant_id=tenant_id,
         filename=safe_filename(file.filename),
