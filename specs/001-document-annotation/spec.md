@@ -11,6 +11,21 @@ extract structured metadata from each using an AI model, and serve the results.
 Acceptance and processing are decoupled because processing outlives a request.
 (Source: `docs/speckit_seed.md` §2.)
 
+## Clarifications
+
+### Session 2026-06-02
+
+- No critical ambiguities required formal clarification. All otherwise-open areas
+  are resolved by the project decision log (`docs/speckit_seed.md` §3) and the
+  constitution (`.specify/memory/constitution.md`); those decisions are settled and
+  were not reopened.
+- Deferred to planning (operational/technical details, not spec-level ambiguities):
+  the exact bounded retry-attempt limit (FR-014); concrete upload size and
+  parse/page/sheet caps (FR-015); the enumerated `document_type` set and the precise
+  metadata schema; and the confidence threshold used to flag low-confidence or
+  ungrounded results (FR-008). These do not change the WHAT and are settled in
+  `/speckit-plan`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Submit a document and get an immediate job identifier (Priority: P1)
