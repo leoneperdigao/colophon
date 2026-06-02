@@ -18,7 +18,9 @@ from app.application.ports.blob_store import BlobStore
 from app.application.ports.document_parser import DocumentParser
 from app.application.ports.llm_client import LLMClient
 from app.application.ports.messaging import Messaging
+from app.application.services.get_annotation import GetAnnotation
 from app.application.services.ingest_document import IngestDocument
+from app.application.services.process_pipeline import ProcessPipeline
 
 
 @dataclass
@@ -44,3 +46,11 @@ class Container:
     @property
     def ingest(self) -> IngestDocument:
         return IngestDocument(blob=self.blob, store=self.store, messaging=self.messaging)
+
+    @property
+    def process(self) -> ProcessPipeline:
+        return ProcessPipeline(blob=self.blob, store=self.store, parser=self.parser, llm=self.llm)
+
+    @property
+    def get_annotation(self) -> GetAnnotation:
+        return GetAnnotation(store=self.store)
