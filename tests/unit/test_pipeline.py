@@ -99,6 +99,20 @@ def test_pipeline_fails_at_raw_stage_when_blob_missing() -> None:
     assert job.error.stage is Stage.RAW
 
 
+def test_pipeline_emits_tenant_scoped_logs(caplog: object) -> None:
+    import logging
+
+    blob, store = FakeBlobStore(), FakeAnnotationStore()
+    _seed(store, blob, tenant="t1", job_id="j1")
+    with caplog.at_level(logging.INFO):  # type: ignore[attr-defined]
+        ProcessPipeline(blob=blob, store=store, parser=FakeParser(), llm=FakeLLM()).execute(
+            WorkMessage(tenant_id="t1", job_id="j1")
+        )
+    job_records = [r for r in caplog.records if getattr(r, "job_id", None) == "j1"]  # type: ignore[attr-defined]
+    assert job_records
+    assert all(getattr(r, "tenant_id", None) == "t1" for r in job_records)
+
+
 def test_pipeline_ignores_unknown_job() -> None:
     blob, store = FakeBlobStore(), FakeAnnotationStore()
     ProcessPipeline(blob=blob, store=store, parser=FakeParser(), llm=FakeLLM()).execute(
