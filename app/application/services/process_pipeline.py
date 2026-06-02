@@ -8,7 +8,7 @@ captured as a terminal `failed` state naming the stage, never swallowed.
 from __future__ import annotations
 
 from app.application.ports.annotation_store import AnnotationStore
-from app.application.ports.blob_store import BlobStore
+from app.application.ports.blob_store import BlobNotFound, BlobStore
 from app.application.ports.document_parser import DocumentParser, ParseError
 from app.application.ports.llm_client import LLMClient, LLMError
 from app.application.ports.messaging import WorkMessage
@@ -40,6 +40,12 @@ class ProcessPipeline:
 
         try:
             raw = self._blob.get_raw(tenant_id, job_id)
+        except BlobNotFound as exc:
+            job.fail(stage=Stage.RAW, message=str(exc))
+            self._store.update_job(job)
+            return
+
+        try:
             curated = self._parser.parse(raw, job.content_type, job.source_filename)
         except ParseError as exc:
             job.fail(stage=Stage.CURATED, message=str(exc))

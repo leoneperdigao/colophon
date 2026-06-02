@@ -71,6 +71,8 @@ def test_failed_job_records_stage_and_error() -> None:
     job.fail(stage=Stage.CURATED, message="parse boom")
     assert job.status is Status.FAILED
     assert job.error == StageError(stage=Stage.CURATED, message="parse boom")
+    # job.stage must agree with the failing stage (no stage vs error.stage mismatch).
+    assert job.stage is Stage.CURATED
 
 
 def test_tenant_and_entities_shape() -> None:

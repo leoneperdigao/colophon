@@ -91,4 +91,5 @@ class Job:
 
     def fail(self, *, stage: Stage, message: str) -> None:
         self.status = Status.FAILED
+        self.stage = stage  # keep stage consistent with the failure location
         self.error = StageError(stage=stage, message=message)

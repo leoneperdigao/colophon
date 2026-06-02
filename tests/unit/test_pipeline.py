@@ -77,6 +77,28 @@ def test_pipeline_is_idempotent_on_already_completed_job() -> None:
     assert job.status is Status.COMPLETED
 
 
+def test_pipeline_fails_at_raw_stage_when_blob_missing() -> None:
+    # Job exists but its raw blob is absent — must fail terminally, not crash.
+    store = FakeAnnotationStore()
+    store.create_job(
+        Job.new(
+            job_id="j1",
+            tenant_id="t1",
+            source_filename="f.pdf",
+            content_type="application/pdf",
+            size_bytes=5,
+        )
+    )
+    ProcessPipeline(blob=FakeBlobStore(), store=store, parser=FakeParser(), llm=FakeLLM()).execute(
+        WorkMessage(tenant_id="t1", job_id="j1")
+    )
+    job = store.get_job("t1", "j1")
+    assert job is not None
+    assert job.status is Status.FAILED
+    assert job.error is not None
+    assert job.error.stage is Stage.RAW
+
+
 def test_pipeline_ignores_unknown_job() -> None:
     blob, store = FakeBlobStore(), FakeAnnotationStore()
     ProcessPipeline(blob=blob, store=store, parser=FakeParser(), llm=FakeLLM()).execute(
