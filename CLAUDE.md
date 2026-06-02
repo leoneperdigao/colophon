@@ -7,8 +7,11 @@ result. This is an **8-hour take-home** — a clean, runnable, well-tested slice
 plus a README that reasons about the rest. **Restraint is graded.**
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+Active feature: **001-document-annotation**. The technical plan, structure, and
+commands live in `specs/001-document-annotation/plan.md` (with `research.md`,
+`data-model.md`, `contracts/openapi.yaml`, `quickstart.md`). Stack: Python 3.12 ·
+FastAPI · pytest · docker-compose (api + worker + rabbitmq + minio + postgres).
+Read the plan before implementing.
 <!-- SPECKIT END -->
 
 ## Source of truth (read before doing anything)
