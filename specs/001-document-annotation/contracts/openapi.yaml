@@ -1,0 +1,145 @@
+openapi: 3.1.0
+info:
+  title: Document Annotation Service
+  version: 0.1.0
+  description: >
+    Accept a document, return a job id immediately, process it asynchronously
+    through raw -> curated -> annotated stages, and retrieve the structured
+    annotation by job id. Tenant is derived from the Bearer credential and is
+    never client-supplied; retrieval is tenant-scoped.
+servers:
+  - url: http://localhost:8000
+security:
+  - bearerAuth: []
+paths:
+  /documents:
+    post:
+      summary: Upload a document; returns a job id immediately (async processing)
+      operationId: ingestDocument
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "202":
+          description: Accepted. Body carries the job id and queued status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "400":
+          description: Invalid upload (missing file, unsupported content-type, too large).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: Missing or invalid credential. No job is created.
+        "415":
+          description: Unsupported media type (not a PDF or spreadsheet).
+  /annotations/{job_id}:
+    get:
+      summary: Retrieve a job's status and, when complete, its annotation
+      operationId: getAnnotation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Job found within the caller's tenant.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResult"
+        "401":
+          description: Missing or invalid credential.
+        "404":
+          description: >
+            Unknown job id, OR a job belonging to another tenant. The two are
+            indistinguishable by design (no cross-tenant existence leak).
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Static token mapped to a tenant + scopes (config locally).
+  schemas:
+    JobAccepted:
+      type: object
+      required: [job_id, status]
+      properties:
+        job_id: { type: string }
+        status: { type: string, enum: [queued] }
+    JobResult:
+      type: object
+      required: [job_id, status, stage]
+      properties:
+        job_id: { type: string }
+        status: { type: string, enum: [queued, processing, completed, failed] }
+        stage: { type: string, enum: [raw, curated, annotated] }
+        result:
+          oneOf:
+            - $ref: "#/components/schemas/Annotation"
+            - type: "null"
+        error:
+          oneOf:
+            - $ref: "#/components/schemas/StageError"
+            - type: "null"
+    Annotation:
+      type: object
+      required:
+        - summary
+        - document_type
+        - key_entities
+        - language
+        - source_filename
+        - page_or_sheet_count
+        - confidence
+        - extracted_at
+        - ungrounded_fields
+      properties:
+        summary: { type: string }
+        document_type:
+          type: string
+          enum: [invoice, report, spreadsheet, letter, other]
+        key_entities:
+          type: array
+          items: { $ref: "#/components/schemas/KeyEntity" }
+        language: { type: string }
+        source_filename: { type: string }
+        page_or_sheet_count: { type: integer, minimum: 0 }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        extracted_at: { type: string, format: date-time }
+        ungrounded_fields:
+          type: array
+          items: { type: string }
+    KeyEntity:
+      type: object
+      required: [type, value, grounded]
+      properties:
+        type: { type: string, enum: [org, person, date, amount, other] }
+        value: { type: string }
+        grounded: { type: boolean }
+    StageError:
+      type: object
+      required: [stage, message]
+      properties:
+        stage: { type: string, enum: [raw, curated, annotated] }
+        message: { type: string }
+    Error:
+      type: object
+      required: [detail]
+      properties:
+        detail: { type: string }
