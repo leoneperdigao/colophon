@@ -89,6 +89,10 @@ strict JSON, Haiku-tier model; model id + key in env, never in code).
 - **Single bounded annotation agent**: classify → type-specific structured
   extraction (Anthropic tool-use) → validate/repair. **No autonomy, no
   multi-agent orchestration, no tools with side effects.**
+- **Clean Code & SOLID** (Constitution IX). One responsibility per
+  module/class; depend on ports not concretions (DIP); adapters substitutable for
+  their fakes (LSP); narrow ports (ISP); intention-revealing names, small
+  functions, DRY, no dead code; `ruff` + `mypy` pass clean.
 
 ## Non-negotiables
 

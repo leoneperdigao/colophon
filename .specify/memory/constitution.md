@@ -1,10 +1,12 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (template) → 1.0.0
-Bump rationale: Initial ratification of the project constitution (MAJOR baseline).
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR — added Principle IX (Clean Code & SOLID). No existing
+principle was removed or redefined; SOLID's DIP/OCP and KISS/YAGNI were previously
+implicit in Principles I and VI and are now made explicit and testable.
 
-Principles defined (8):
+Principles (9):
   I.   Hexagonal, Light
   II.  Scope Discipline
   III. Runnable Locally Is the Deliverable
@@ -13,17 +15,16 @@ Principles defined (8):
   VI.  Simplicity over Cleverness
   VII. Test-First (NON-NEGOTIABLE)
   VIII.Everything Traceable
+  IX.  Clean Code & SOLID            <-- added in 1.1.0
 
 Sections:
-  Added: "Locked Stack & Architecture Constraints" (technology + port constraints)
-  Added: "Development Workflow & Quality Gates" (two-framework flow, branching, eval gate)
-  Added: "Governance"
+  "Locked Stack & Architecture Constraints" · "Development Workflow & Quality Gates" · "Governance"
 
 Templates / artifacts reviewed:
   ✅ .specify/templates/plan-template.md  — generic "Constitution Check" gate; fills at plan time, no edit needed
   ✅ .specify/templates/spec-template.md  — no hardcoded principle references, no edit needed
   ✅ .specify/templates/tasks-template.md — no hardcoded principle references, no edit needed
-  ✅ CLAUDE.md                            — already aligned (stack, scope, tenancy, TDD, out-of-scope)
+  ✅ CLAUDE.md                            — updated: added a Clean Code & SOLID bullet under "Architecture rules"
   ✅ docs/BRANCHING.md                    — already aligned (trunk-based, traceability)
 
 Deferred TODOs: none.
@@ -132,6 +133,31 @@ Settled decisions live in the artifacts and are not re-litigated mid-build.
 *Rationale:* one source of truth prevents the two frameworks from fighting and
 keeps the reasoning auditable.
 
+### IX. Clean Code & SOLID
+
+Code MUST be clean and SOLID, with these concrete, checkable rules:
+
+- **Single Responsibility:** each module/class has one reason to change — a
+  service implements one use case, an adapter wraps one port, a domain type holds
+  one concept. No "manager"/"util" grab-bags.
+- **Open/Closed + Dependency Inversion:** the domain and application depend on
+  port abstractions, never on concretions; new behaviour arrives as a new adapter,
+  not by editing the core (this is Principle I, enforced at the code level).
+- **Liskov substitutability:** every adapter is interchangeable with its port's
+  fake — the same port contract tests MUST pass against every implementation.
+- **Interface Segregation:** ports stay narrow and client-specific; if a consumer
+  needs only part of a port, split the port rather than grow a fat one.
+- **Clean code:** intention-revealing names; small, single-purpose functions;
+  **DRY** (no copy-paste — extract); no dead code, no commented-out code, no TODO
+  left unexplained; comments explain *why*, not *what*; full type hints.
+- **Enforced mechanically:** `ruff` (lint) and `mypy` (types) MUST pass clean in
+  CI/local; formatting is automated, not debated. A reviewer SHOULD flag any
+  function that has grown large or taken on a second responsibility.
+
+*Rationale:* clean seams are explicitly graded, and SOLID is what keeps the
+hexagonal boundaries honest as the code grows. Making the rules mechanical
+(lint + types + substitutable fakes) keeps "clean" from being a matter of taste.
+
 ## Locked Stack & Architecture Constraints
 
 The stack is fixed; substitutions require explicit approval:
@@ -190,4 +216,4 @@ resolved design questions.
   rejected. Use `CLAUDE.md` for day-to-day runtime guidance; it MUST stay
   consistent with this constitution.
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-02 | **Last Amended**: 2026-06-02
+**Version**: 1.1.0 | **Ratified**: 2026-06-02 | **Last Amended**: 2026-06-02
