@@ -21,6 +21,8 @@ class IngestDocument:
 
     def execute(self, *, tenant_id: str, filename: str, content_type: str, content: bytes) -> str:
         job_id = compute_job_id(tenant_id, content, filename)
+        if self._store.get_job(tenant_id, job_id) is not None:
+            return job_id  # idempotent: identical re-upload, do not reprocess
         self._blob.put_raw(tenant_id, job_id, filename, content)
         self._store.create_job(
             Job.new(
