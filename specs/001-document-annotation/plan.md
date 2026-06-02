@@ -29,9 +29,11 @@ boto3/minio (S3 API), psycopg/SQLAlchemy Core (Postgres), LiteLLM → Anthropic
 **Storage**: MinIO (raw, immutable, tenant-prefixed keys) + Postgres
 (`jobs`, `curated`, `annotated` rows, `tenant_id` on every row)
 
-**Testing**: pytest — domain/application against in-memory fakes (no infra); one
-e2e test; one cross-tenant lookup test; `eval/` gold-set + groundedness as a
-pytest/`make eval` target with thresholds
+**Testing**: pytest in three layers — **unit** (domain/application vs in-memory
+fakes, no infra), **integration** (the API wired to fakes — contract,
+cross-tenant, idempotency, failure — fast/offline), and **e2e** (the full pipeline
+on real infra via docker-compose). Plus the `eval/` gold-set + groundedness
+`make eval` target with thresholds
 
 **Target Platform**: Linux containers via docker-compose (api + worker + rabbitmq
 + minio + postgres)
@@ -102,7 +104,8 @@ app/
   config/                # composition root, env-driven wiring, token→tenant map
 tests/
   unit/                  # domain + application vs fakes (no infra)
-  e2e/                   # one end-to-end + one cross-tenant lookup test
+  integration/           # API wired to fakes — contract, cross-tenant, idempotency, failure (no infra)
+  e2e/                   # full pipeline on real infra (docker-compose)
   fakes/                 # in-memory adapters implementing each port
 eval/                    # gold-set scoring + groundedness check + thresholds
 samples/                 # generator (docs + ground-truth labels)

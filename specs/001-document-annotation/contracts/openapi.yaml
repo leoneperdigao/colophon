@@ -108,6 +108,7 @@ components:
         - page_or_sheet_count
         - confidence
         - extracted_at
+        - ungrounded_fields
       properties:
         summary: { type: string }
         document_type:
@@ -126,7 +127,7 @@ components:
           items: { type: string }
     KeyEntity:
       type: object
-      required: [type, value]
+      required: [type, value, grounded]
       properties:
         type: { type: string, enum: [org, person, date, amount, other] }
         value: { type: string }

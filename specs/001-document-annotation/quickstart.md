@@ -53,8 +53,13 @@ curl -s -o /dev/null -w "%{http_code}\n" \
 ## 4. Tests & eval
 
 ```bash
-pytest tests/unit            # domain + application vs fakes — no infra needed
-pytest tests/e2e             # end-to-end + cross-tenant lookup (infra up)
+# Fast, NO infra — domain + the API wired to fakes (contract, cross-tenant, idempotency, failure)
+pytest tests/unit tests/integration
+
+# Full pipeline on REAL infra — requires the stack up
+docker-compose up -d
+pytest tests/e2e
+
 make eval                    # gold-set thresholds + groundedness check
 ```
 

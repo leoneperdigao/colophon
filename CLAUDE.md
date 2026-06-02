@@ -100,8 +100,9 @@ strict JSON, Haiku-tier model; model id + key in env, never in code).
   credential, **never client-supplied**. Thread it through domain, storage keys,
   store rows, message metadata, and logs. Every read/write is tenant-scoped;
   another tenant's job id returns **404**, not the record.
-- **Idempotency:** `job_id = hash(tenant + content + filename)`; forward-only
-  stage transitions.
+- **Idempotency:** `job_id` = SHA-256 over `tenant_id`‖NUL‖`filename`‖NUL‖content
+  (lowercase hex, deterministic — **not** Python's `hash()`); forward-only stage
+  transitions.
 - **Security by default.** Secrets never in the repo (`.env.example` committed,
   real `.env` gitignored, keys only in the LLM gateway). Per-component
   least-privilege creds. All uploaded content is untrusted: size/content-type

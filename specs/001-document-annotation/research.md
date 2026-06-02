@@ -72,8 +72,10 @@ CLARIFICATION** items.
 
 ## D8 — Idempotency: content-hash job ids
 
-- **Decision**: `job_id = hash(tenant_id + content_bytes + filename)`; re-upload
-  returns the same id and does not reprocess; conditional forward-only writes.
+- **Decision**: `job_id` = lowercase-hex **SHA-256** over the NUL-delimited byte
+  sequence `tenant_id`‖`0x00`‖`filename`‖`0x00`‖content-bytes (deterministic across
+  processes/hosts — **not** Python's built-in `hash()`, which is salted per process).
+  Re-upload returns the same id and does not reprocess; conditional forward-only writes.
 - **Rationale**: Re-upload returns same job; at-least-once delivery cannot
   double-process; tenant in the hash keeps ids tenant-scoped.
 - **Alternatives**: Random UUID (no dedup); hash without tenant (cross-tenant id

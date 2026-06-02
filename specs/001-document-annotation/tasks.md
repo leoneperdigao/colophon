@@ -27,7 +27,7 @@ Postgres RLS · EventBridge/Step Functions as separate infra · LiteLLM proxy co
 
 **Purpose**: Project skeleton and tooling.
 
-- [ ] T001 Create the repo layout per plan.md: `app/{domain,application/{ports,services},adapters/{inbound/http,outbound/{messaging,blob,store},llm,parsing},worker,config}`, `tests/{unit,e2e,fakes}`, `eval/`, `samples/`, `infra/` with `__init__.py` files where needed
+- [ ] T001 Create the repo layout per plan.md: `app/{domain,application/{ports,services},adapters/{inbound/http,outbound/{messaging,blob,store},llm,parsing},worker,config}`, `tests/{unit,integration,e2e,fakes}`, `eval/`, `samples/`, `infra/` with `__init__.py` files where needed
 - [ ] T002 Initialize the Python 3.12 project in `pyproject.toml` with FastAPI, uvicorn, pydantic, pika (or aio-pika), minio (or boto3), psycopg, litellm, pypdf, openpyxl, pytest, httpx; pin versions in a lockfile
 - [ ] T003 [P] Configure ruff + black + mypy and a `pytest` config in `pyproject.toml`/`pytest.ini`
 - [ ] T004 [P] Create `.env.example` (no secrets) with `ANTHROPIC_API_KEY`, model id, `TENANT_TOKENS`, and per-component infra creds; confirm `.env` is gitignored
@@ -44,7 +44,7 @@ Postgres RLS · EventBridge/Step Functions as separate infra · LiteLLM proxy co
 ⚠️ **CRITICAL**: No user-story work begins until this phase is complete.
 
 - [ ] T006 Unit tests for domain entities + state machine in `tests/unit/test_domain.py`: `Job` status/stage transitions are forward-only; `failed` carries `{stage, error}`; `Annotation`/`KeyEntity`/`Tenant` shape (write first, must fail)
-- [ ] T007 Unit test for idempotency in `tests/unit/test_idempotency.py`: `job_id = hash(tenant_id + content + filename)` is stable and tenant-scoped (same content + different tenant → different id)
+- [ ] T007 Unit test for idempotency in `tests/unit/test_idempotency.py`: `job_id` = lowercase-hex **SHA-256** over `tenant_id`‖`0x00`‖`filename`‖`0x00`‖content-bytes (deterministic, **not** Python `hash()`) is stable across processes and tenant-scoped (same content + different tenant → different id)
 - [ ] T008 Implement pure domain entities in `app/domain/` (`job.py`, `stage_result.py`, `annotation.py`, `key_entity.py`, `tenant.py`) with `tenant_id` as a field; no IO
 - [ ] T009 Implement the forward-only state machine and `compute_job_id()` in `app/domain/` (make T006, T007 pass)
 - [ ] T010 Define the 5 port Protocols in `app/application/ports/`: `BlobStore`, `Messaging`, `AnnotationStore`, `DocumentParser`, `LLMClient` (interfaces only, from contracts/data-model)
@@ -63,7 +63,7 @@ Postgres RLS · EventBridge/Step Functions as separate infra · LiteLLM proxy co
 
 ### Tests (write first, must fail)
 
-- [ ] T013 [P] [US1] Contract test for `POST /documents` in `tests/e2e/test_post_documents.py` (202 shape, 401 without token, 415/400 on bad upload) against the app with fakes
+- [ ] T013 [P] [US1] Contract test for `POST /documents` in `tests/integration/test_post_documents.py` (202 shape, 401 without token, 415/400 on bad upload) against the app wired to fakes (no infra)
 - [ ] T014 [P] [US1] Unit test for the auth dependency in `tests/unit/test_auth.py`: token→tenant resolution; tenant is never read from a header/body
 - [ ] T015 [US1] Unit test for `IngestDocument` in `tests/unit/test_ingest.py`: writes raw, creates `queued` job, enqueues exactly one work message carrying `tenant_id + job_id`
 
@@ -86,7 +86,7 @@ Postgres RLS · EventBridge/Step Functions as separate infra · LiteLLM proxy co
 
 ### Tests (write first, must fail)
 
-- [ ] T020 [P] [US2] Contract test for `GET /annotations/{job_id}` in `tests/e2e/test_get_annotation.py` (200 processing vs completed shape, 404 unknown)
+- [ ] T020 [P] [US2] Contract test for `GET /annotations/{job_id}` in `tests/integration/test_get_annotation.py` (200 processing vs completed shape, 404 unknown) against the app wired to fakes (no infra)
 - [ ] T021 [US2] Unit test for `ProcessPipeline` (stub worker) in `tests/unit/test_pipeline.py`: advances stages forward-only and persists each; uses fake parser + fake LLM
 - [ ] T022 [US2] Unit test for `GetAnnotation` in `tests/unit/test_get_annotation.py`: returns status/stage/result for the owning tenant
 
@@ -109,7 +109,7 @@ Postgres RLS · EventBridge/Step Functions as separate infra · LiteLLM proxy co
 
 ### Tests (write first, must fail)
 
-- [ ] T027 [P] [US3] Cross-tenant lookup test in `tests/e2e/test_cross_tenant.py`: A creates, B gets → 404; A gets → 200
+- [ ] T027 [P] [US3] Cross-tenant lookup test in `tests/integration/test_cross_tenant.py` (app wired to fakes, no infra): A creates, B gets → 404; A gets → 200
 - [ ] T028 [US3] Unit test in `tests/unit/test_tenant_scoping.py`: store reads/writes are filtered by `tenant_id`; no cross-tenant existence leak
 
 ### Implementation
@@ -129,7 +129,7 @@ Postgres RLS · EventBridge/Step Functions as separate infra · LiteLLM proxy co
 
 ### Tests (write first, must fail)
 
-- [ ] T031 [P] [US4] E2E idempotency test in `tests/e2e/test_idempotency.py`: duplicate upload → same id, single processing run; two tenants → distinct ids
+- [ ] T031 [P] [US4] Integration idempotency test in `tests/integration/test_idempotency.py` (app wired to fakes, no infra): duplicate upload → same id, single processing run; two tenants → distinct ids
 - [ ] T032 [US4] Unit test for forward-only conditional writes in `tests/unit/test_forward_only.py`: a redelivered/duplicate stage message does not overwrite a completed result
 
 ### Implementation
@@ -149,7 +149,7 @@ Postgres RLS · EventBridge/Step Functions as separate infra · LiteLLM proxy co
 
 ### Tests (write first, must fail)
 
-- [ ] T035 [P] [US5] E2E failure test in `tests/e2e/test_failure.py`: corrupt file → `failed{stage, error}`, retrievable
+- [ ] T035 [P] [US5] Integration failure test in `tests/integration/test_failure.py` (app wired to fakes, no infra): corrupt file → `failed{stage, error}`, retrievable
 - [ ] T036 [US5] Unit test for retry/DLQ policy in `tests/unit/test_retry_dlq.py`: stage retried ≤ N then routed to DLQ + `failed` (not retried indefinitely)
 
 ### Implementation

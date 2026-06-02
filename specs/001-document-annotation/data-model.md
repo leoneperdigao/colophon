@@ -18,7 +18,7 @@ The unit of work for one uploaded document under one tenant.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `job_id` | string | `hash(tenant_id + content_bytes + filename)`. Idempotency key. |
+| `job_id` | string | Lowercase-hex **SHA-256** over `tenant_id`‖`0x00`‖`filename`‖`0x00`‖content-bytes (NUL-delimited for domain separation; deterministic across processes/hosts — **not** Python's built-in `hash()`). Idempotency key. |
 | `tenant_id` | string | Owner; scopes every read/write. |
 | `source_filename` | string | Original upload name (sanitised). |
 | `content_type` | string | Validated MIME (pdf / spreadsheet types only). |
@@ -65,7 +65,7 @@ The unit of work for one uploaded document under one tenant.
 | `page_or_sheet_count` | int | From curated. |
 | `confidence` | float [0,1] | Reported indicator; lowered by ungrounded values. |
 | `extracted_at` | timestamp | ISO-8601. |
-| `ungrounded_fields` | string[] | Values not locatable in curated text (flagged). |
+| `ungrounded_fields` | string[] | Always present (empty list when all grounded); lists values not locatable in curated text (flagged). |
 
 ### KeyEntity
 
