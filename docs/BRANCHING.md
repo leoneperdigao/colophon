@@ -14,14 +14,14 @@ short-lived branches, fast integration.
 
 | Branch | Lifetime | Purpose |
 | --- | --- | --- |
-| `main` | permanent | **Protected trunk.** Always green, always `docker-compose up`-runnable. The baseline scaffolding (Spec Kit, Superpowers config, `PLAN.md`, docs) lives here. No direct pushes — everything lands via PR. |
+| `main` | permanent | **Trunk.** Always green, always `docker-compose up`-runnable. Holds the baseline scaffolding (Spec Kit, Superpowers config, docs). Work lands via PR. |
 | `NNN-short-name` | per feature | **Spec Kit feature branch**, cut off `main` by `/speckit-specify` (e.g. `001-document-annotation`). Holds `specs/NNN-short-name/{spec,plan,tasks}.md` and acts as the integration line while the feature is built. |
 | `feat/NNN-<slice>` | hours | **Implementation slice / port adapter**, cut off the feature branch. One per vertical slice or per independent port (`feat/001-parsing-adapter`, `feat/001-llm-adapter`). Merges back up, then deletes. |
 
 ## Rules
 
-1. **Protect `main`.** No direct commits. Merge only via PR with tests green.
-   (Enable branch protection on the GitHub remote once it exists.)
+1. **Keep `main` green.** Land work via PR with tests passing rather than
+   committing directly.
 2. **Let Spec Kit own the feature branch.** Do not hand-create the `NNN-*`
    branch — `/speckit-specify` creates it (it numbers from `specs/` and checks
    out from the current branch, so run it from an up-to-date `main`).
