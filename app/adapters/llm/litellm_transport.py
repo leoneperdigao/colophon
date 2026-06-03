@@ -61,13 +61,19 @@ class LiteLLMTransport:
         if self._api_base:
             kwargs["api_base"] = self._api_base
 
+        # Only request JSON mode where the provider supports it — avoids a second
+        # provider call (and obscured failures) on real network/auth/timeout errors.
         try:
-            response = litellm.completion(response_format={"type": "json_object"}, **kwargs)
-        except Exception:  # provider may reject response_format — retry without it
-            try:
-                response = litellm.completion(**kwargs)
-            except Exception as exc:  # pragma: no cover - network/provider failure
-                raise TransportError("LLM call failed") from exc
+            supported = litellm.get_supported_openai_params(model=self._model) or []
+        except Exception:  # pragma: no cover - provider metadata lookup
+            supported = []
+        if "response_format" in supported:
+            kwargs["response_format"] = {"type": "json_object"}
+
+        try:
+            response = litellm.completion(**kwargs)
+        except Exception as exc:  # pragma: no cover - network/provider failure
+            raise TransportError("LLM call failed") from exc
 
         try:
             content = response.choices[0].message.content

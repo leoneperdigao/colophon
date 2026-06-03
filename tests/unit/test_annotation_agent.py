@@ -97,3 +97,13 @@ def test_transport_failure_raises_llm_error() -> None:
 
     with pytest.raises(LLMError):
         _agent(_Boom()).annotate(CURATED, "f.pdf")
+
+
+def test_default_extracted_at_is_z_suffixed_utc() -> None:
+    transport = FakeTransport(
+        classify={"document_type": "report"},
+        extract={"summary": "x", "key_entities": [], "language": "en"},
+    )
+    ann = AnnotationAgent(transport).annotate(CURATED, "f.pdf")  # default now()
+    assert ann.extracted_at.endswith("Z")
+    assert "+00:00" not in ann.extracted_at

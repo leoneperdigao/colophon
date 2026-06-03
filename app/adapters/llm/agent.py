@@ -78,7 +78,8 @@ class _AnnotationDraft(BaseModel):
 
 
 def _utc_now() -> str:
-    return datetime.now(UTC).isoformat()
+    # Z-suffixed UTC, consistent with the stub adapter and tests.
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _delimit(text: str) -> str:
