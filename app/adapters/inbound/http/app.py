@@ -4,11 +4,10 @@ from fastapi import FastAPI
 
 from app.adapters.inbound.http import annotations, documents
 from app.config.container import Container
-from app.observability import configure_logging
 
 
 def create_app(container: Container) -> FastAPI:
-    configure_logging()
+    # Logging configuration is owned by the process entrypoint, not this factory.
     app = FastAPI(title="Document Annotation Service")
     app.state.container = container
     app.state.token_map = container.token_map

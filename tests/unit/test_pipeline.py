@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+
+import pytest
+
 from app.application.ports.messaging import WorkMessage
 from app.application.services.process_pipeline import ProcessPipeline
 from app.domain.job import Job, Stage, Status
@@ -99,16 +103,14 @@ def test_pipeline_fails_at_raw_stage_when_blob_missing() -> None:
     assert job.error.stage is Stage.RAW
 
 
-def test_pipeline_emits_tenant_scoped_logs(caplog: object) -> None:
-    import logging
-
+def test_pipeline_emits_tenant_scoped_logs(caplog: pytest.LogCaptureFixture) -> None:
     blob, store = FakeBlobStore(), FakeAnnotationStore()
     _seed(store, blob, tenant="t1", job_id="j1")
-    with caplog.at_level(logging.INFO):  # type: ignore[attr-defined]
+    with caplog.at_level(logging.INFO):
         ProcessPipeline(blob=blob, store=store, parser=FakeParser(), llm=FakeLLM()).execute(
             WorkMessage(tenant_id="t1", job_id="j1")
         )
-    job_records = [r for r in caplog.records if getattr(r, "job_id", None) == "j1"]  # type: ignore[attr-defined]
+    job_records = [r for r in caplog.records if getattr(r, "job_id", None) == "j1"]
     assert job_records
     assert all(getattr(r, "tenant_id", None) == "t1" for r in job_records)
 

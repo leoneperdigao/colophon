@@ -42,9 +42,15 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(level: int = logging.INFO) -> None:
-    """Install a JSON handler on the root logger once (idempotent)."""
+    """Install the JSON handler on the root logger — entrypoint-only, opt-in.
+
+    Respects an already-configured environment: if the host (uvicorn, pytest, a
+    parent process) has already attached handlers to the root logger, this is a
+    no-op so we never duplicate output or override the host's level. Call it once
+    from a real process entrypoint, not from library/factory code.
+    """
     root = logging.getLogger()
-    if any(h.name == _HANDLER_NAME for h in root.handlers):
+    if root.handlers:
         return
     handler = logging.StreamHandler()
     handler.set_name(_HANDLER_NAME)
