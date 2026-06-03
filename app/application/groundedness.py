@@ -96,6 +96,12 @@ def ground_annotation(annotation: Annotation, curated_text: str) -> Annotation:
     total = len(checked)
     ungrounded_ratio = (len(ungrounded) / total) if total else 0.0
     confidence = round(annotation.confidence * (1.0 - ungrounded_ratio), 4)
+    # Empty curated text = nothing was extracted (e.g. a scanned image-only PDF;
+    # OCR is out of scope). With no entities the ungrounded ratio is 0, so the
+    # default confidence would survive unchanged — floor it: a zero-text extraction
+    # has no basis for confidence.
+    if not curated_text.strip():
+        confidence = 0.0
 
     return replace(
         annotation,
