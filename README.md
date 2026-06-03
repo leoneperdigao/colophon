@@ -1,7 +1,12 @@
 # Colophon — Document Annotation Service
 
 [![CI](https://github.com/leoneperdigao/colophon/actions/workflows/ci.yml/badge.svg)](https://github.com/leoneperdigao/colophon/actions/workflows/ci.yml)
-&nbsp;Python 3.12 · FastAPI · RabbitMQ · MinIO · Postgres · LiteLLM (Anthropic / Ollama)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/release/python-3120/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![mypy: strict](https://img.shields.io/badge/mypy-strict-2A6DB2)](https://mypy-lang.org/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+
+Python 3.12 · FastAPI · RabbitMQ · MinIO · Postgres · LiteLLM (Anthropic / Ollama)
 
 An event-driven service that annotates documents with an LLM. `POST /documents`
 returns a **job id immediately**; a background worker runs the document through
@@ -394,3 +399,14 @@ IdP / OAuth · per-tenant KMS & silo deployment · malware scanning / WAF / rate
 limiting · LLM-as-judge & online/drift eval. Each is analysed above or in the
 linked ADRs — the deterministic gold-set + groundedness checks **are** built; the
 judge and monitoring are described.
+
+---
+
+## Colophon
+
+A *colophon* is the note traditionally set at the end of a book recording how it
+was made — the printer, the typeface, the date, the place. In other words, a
+small block of **structured metadata about a document.** That is exactly what this
+service produces for each upload: a summary, a type, key entities, language — a
+colophon for every document, generated on demand. Hence the name. (This section
+is, fittingly, the README's own.)
