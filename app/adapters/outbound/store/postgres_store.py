@@ -105,9 +105,13 @@ class PostgresAnnotationStore:
         )
 
     def update_job(self, job: Job) -> None:
+        # Conditional write: terminal rows are immutable, so a redelivered/concurrent
+        # worker cannot overwrite a completed/failed result (the transition *to*
+        # terminal still applies — its source row is non-terminal). See ADR-0013.
         self._conn.execute(
             """UPDATE jobs SET status=%s, stage=%s, attempts=%s, error_stage=%s, error_message=%s,
-                   updated_at=now() WHERE tenant_id=%s AND job_id=%s""",
+                   updated_at=now()
+               WHERE tenant_id=%s AND job_id=%s AND status NOT IN ('completed','failed')""",
             (
                 job.status.value,
                 job.stage.value,

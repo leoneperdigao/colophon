@@ -47,9 +47,22 @@ The annotation retrieved via `GET /annotations/{job_id}`, for two tenants:
 
 ## Quickstart — clone to running
 
-**Prerequisites:** Docker (or Podman) + Compose. An Anthropic API key or a local
-Ollama is optional — the stack ships an **offline `stub` model** so it runs with
-no model server.
+### Prerequisites
+
+| Tool | Why | Install |
+| --- | --- | --- |
+| [Docker](https://docs.docker.com/get-docker/) **+ Compose** (or [Podman](https://podman.io/docs/installation) + `podman compose`) | Runs the stack (api + worker + rabbitmq + minio + postgres) | macOS: `brew install --cask docker` · or `brew install podman && podman machine init && podman machine start` |
+| [uv](https://docs.astral.sh/uv/) | Runs tests / eval / scripts on the host | `brew install uv` (or the installer below) |
+| *(optional)* a model — [Anthropic](https://docs.anthropic.com/en/api/getting-started) key **or** local [Ollama](https://ollama.com/download) | A real annotation provider | `export ANTHROPIC_API_KEY=…` · or `brew install ollama && ollama pull llama3.1` |
+
+```bash
+# no Homebrew? install uv directly:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+git --version && docker compose version && uv --version   # quick sanity check
+```
+
+The stack ships an **offline `stub` model** (`LLM_MODEL=stub`), so you can run the
+whole thing **with no API key and no model server**.
 
 ```bash
 git clone https://github.com/leoneperdigao/colophon && cd colophon
@@ -118,9 +131,13 @@ worker does the slow part out of band.
   <img src="docs/assets/pipeline.svg" alt="Async pipeline: synchronous upload returns 202 + job_id, then a background worker runs raw → curated → annotated, with bounded retry to a DLQ on failure" width="940">
 </p>
 
-Stages are **forward-only** and each is persisted, so a redelivered message can't
-double-process or overwrite a completed result, and any stage is replayable from
-the persisted prior stage.
+Stages are **forward-only** and each is persisted, and **terminal jobs are
+immutable at the store** (a conditional `UPDATE`), so a redelivered message can't
+overwrite a finished result and any stage is replayable from the persisted prior
+stage. With the deployed **single worker**, that makes redelivery fully safe;
+under *concurrent* workers the worst case is benign duplicate processing (same
+content-addressed result) — the optimistic-claim hardening is specified in
+[ADR-0013](docs/adr/0013-concurrency-and-idempotency-model.md).
 
 ### Design decisions (and why)
 
@@ -172,7 +189,10 @@ are built, the rest is specified.
   captured and the cause logged (never surfaced to clients). Broker-native, not a
   hand-rolled retry loop ([ADR-0004](docs/adr/0004-retry-and-dead-lettering-are-broker-native.md)).
 - **Idempotency (built).** Content-addressed `job_id` + forward-only stage writes
-  + `ON CONFLICT DO NOTHING/UPDATE` make redelivery and duplicate uploads safe.
+  + `ON CONFLICT DO NOTHING/UPDATE` + **terminal-immutable conditional writes**
+  make duplicate uploads and redelivery safe (single worker); the concurrent-worker
+  TOCTOU and its optimistic-claim hardening are analysed in
+  [ADR-0013](docs/adr/0013-concurrency-and-idempotency-model.md).
 - **Observability (built + described).** Structured JSON logs correlated by
   `tenant_id`, `job_id`, `stage` on every transition. *Production:* metrics for
   queue depth, per-stage latency, success/failure and **LLM token spend** (LiteLLM
@@ -196,10 +216,13 @@ Split into what's wired vs. what's specified for production.
   secrets in code).
 - **Per-component least privilege** — Postgres, RabbitMQ and MinIO each get their
   own scoped credentials in compose; nothing shared. Containers run **non-root**.
-- **Untrusted-input handling** — size + content-type validation at the edge;
+- **Untrusted-input handling** — size + content-type **allowlist** at the edge;
   parsing with **timeouts, page/sheet/cell caps** (defends decompression bombs /
-  billion-laughs); spreadsheets are read as **values, never formulas**; corrupt
-  input fails gracefully at the parse stage with a stable, user-safe message
+  billion-laughs); spreadsheets are read as **values, never formulas**. The parser
+  is routed by the client-declared content-type, but it is **not trusted**: a
+  declared-but-mismatched file fails gracefully at the parse stage with a stable,
+  user-safe message (the wrong parser raises `ParseError` → job `failed@curated`),
+  never a misparse. Magic-byte sniffing is a noted next-step hardening
   ([ADR-0005](docs/adr/0005-untrusted-input-and-prompt-injection-defense.md),
   [ADR-0011](docs/adr/0011-file-size-handling-and-scaling.md)).
 - **LLM-injection defense** — document-as-data delimiting, strict structured
@@ -263,8 +286,19 @@ construction — free, exact labels) against thresholds:
 
 The eval re-runs the deterministic groundedness check itself rather than trusting
 the model's self-report, and entities are scored on `(type, value)` — not value
-alone. Low-confidence / ungrounded fields are flagged on the annotation for
-human review.
+alone. Low-confidence / ungrounded fields are flagged on the annotation for human
+review.
+
+**Groundedness** is normalization-aware containment of each extracted value in the
+curated text: it canonicalises numbers (`USD 1,500.00` ≡ `1500`) and folds `/`
+date separators (`2026/01/15` ≡ `2026-01-15`), and requires a word/number boundary
+for short values (so `IT` doesn't match inside `audit`, nor `1` inside `10`). Known
+residual gap, by design: textual-month dates (`January 1, 2024` vs `2024-01-01`)
+and locale decimal commas flag ungrounded — the cheap next step is a per-locale
+date/number canonicaliser. **Confidence** is a deterministic heuristic, **not**
+model-derived: a `0.9` baseline scaled by the grounded fraction of entities — a
+proxy that surfaces fabrication, replaced in production by calibrated/logprob
+signals.
 
 *Production eval plan (described, [ADR-0010](docs/adr/0010-load-testing-and-robustness.md)):*
 an **LLM-as-judge** for open-ended quality, **online** sampling with human
@@ -375,7 +409,7 @@ app/
 eval/             # gold-set scoring + thresholds (make eval)
 samples/          # gold-set generator + real-world robustness corpus downloader
 scripts/          # smoke, demo, render_report, make_media
-docs/adr/         # 12 Architecture Decision Records
+docs/adr/         # 13 Architecture Decision Records
 specs/            # Spec Kit artifacts (spec, plan, tasks, OpenAPI contract)
 ```
 
@@ -399,6 +433,7 @@ Execution-time decisions are recorded in [`docs/adr/`](docs/adr/):
 | [0010](docs/adr/0010-load-testing-and-robustness.md) | Load testing & robustness strategy |
 | [0011](docs/adr/0011-file-size-handling-and-scaling.md) | File-size handling & scaling |
 | [0012](docs/adr/0012-multi-client-customization-and-extension.md) | Multi-client customization & extension model |
+| [0013](docs/adr/0013-concurrency-and-idempotency-model.md) | Concurrency & idempotency model |
 
 ## Out of scope (documented, not built)
 
@@ -419,3 +454,9 @@ small block of **structured metadata about a document.** That is exactly what th
 service produces for each upload: a summary, a type, key entities, language — a
 colophon for every document, generated on demand. Hence the name. (This section
 is, fittingly, the README's own.)
+
+**Built with** [Claude Code](https://www.anthropic.com/claude-code), using
+[GitHub Spec Kit](https://github.com/github/spec-kit) to author the specs
+(constitution → spec → plan → tasks) and the
+[Superpowers](https://github.com/obra/superpowers) plugin to execute them
+(TDD, subagents along the ports). See [`CLAUDE.md`](CLAUDE.md).
