@@ -136,23 +136,23 @@ If you think one of these is needed, **stop and ask** rather than building it:
 
 ## Branching strategy
 
-Trunk-based, aligned with how Spec Kit and Superpowers already work. See
-`docs/BRANCHING.md` for the full policy. Short version:
+Trunk-based. `main` is the only integration line — every branch is cut off `main`
+and merged back to `main` via PR. See `docs/BRANCHING.md` for the full policy.
+Short version:
 
-- **`main` is the protected trunk** — always green, always runnable. No direct
-  pushes; everything lands via PR.
-- **Spec Kit owns the feature branch.** `/speckit-specify` cuts
-  `NNN-short-name` (e.g. `001-document-annotation`) off `main` and writes
-  `specs/NNN-short-name/`. Commit the spec artifacts there; that branch is the
-  integration line for this feature.
-- **Implementation happens on short-lived slice branches** off the feature
-  branch, one per vertical slice or per port adapter
-  (`feat/<NNN>-<slice>`, e.g. `feat/001-parsing-adapter`). Superpowers may use
-  **git worktrees** to run port-adapter subagents in parallel without conflict.
+- **`main` is the trunk** — always green, always runnable. Everything lands via
+  PR; CI gates each one. No long-lived per-feature integration branch.
+- **Spec Kit's feature branch merges to `main` like any branch.**
+  `/speckit-specify` cuts `NNN-short-name` (e.g. `001-document-annotation`) off
+  `main` with the `specs/NNN-*/` artifacts; PR it to `main` — don't keep it alive.
+- **Implementation slices are cut off `main`** and PR'd to `main`, one per vertical
+  slice or per port adapter. `NNN` is the Spec Kit feature id, so all slices of
+  this feature are `feat/001-<slice>` (e.g. `feat/001-parsing-adapters`); a new
+  feature gets the next number. Port adapters may use **git worktrees** off `main`
+  to run in parallel without conflict.
 - **Conventional Commits** (`feat:`, `fix:`, `test:`, `chore:`, `docs:`).
   Keep commits small and green; never commit on red.
-- **Squash-merge** slice branches up to the feature branch, then the feature
-  branch to `main` via PR. Rebase on `main` rather than back-merging.
+- **Rebase on `main`** before merging; delete merged branches.
 
 ## Commands
 
