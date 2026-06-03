@@ -394,3 +394,14 @@ IdP / OAuth · per-tenant KMS & silo deployment · malware scanning / WAF / rate
 limiting · LLM-as-judge & online/drift eval. Each is analysed above or in the
 linked ADRs — the deterministic gold-set + groundedness checks **are** built; the
 judge and monitoring are described.
+
+---
+
+## Colophon
+
+A *colophon* is the note traditionally set at the end of a book recording how it
+was made — the printer, the typeface, the date, the place. In other words, a
+small block of **structured metadata about a document.** That is exactly what this
+service produces for each upload: a summary, a type, key entities, language — a
+colophon for every document, generated on demand. Hence the name. (This section
+is, fittingly, the README's own.)
