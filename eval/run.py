@@ -11,6 +11,7 @@ from __future__ import annotations
 import sys
 
 from app.adapters.parsing.factory import build_document_parser
+from app.application.groundedness import ground_annotation
 from app.application.ports.document_parser import ParseError
 from app.application.ports.llm_client import LLMClient, LLMError
 from eval.metrics import Prediction, Report, Thresholds, compute_report
@@ -21,11 +22,16 @@ def _norm(value: str) -> str:
     return value.strip().casefold()
 
 
+def _entity_key(entity_type: str, value: str) -> str:
+    # Score by (type, value) so a mistyped entity is NOT a true positive.
+    return f"{_norm(entity_type)}\x00{_norm(value)}"
+
+
 def evaluate(llm: LLMClient) -> Report:
     parser = build_document_parser()
     predictions: list[Prediction] = []
     for sample in build_gold_set():
-        expected = frozenset(_norm(value) for _type, value in sample.key_entities)
+        expected = frozenset(_entity_key(t, v) for t, v in sample.key_entities)
         try:
             curated = parser.parse(sample.content, sample.content_type, sample.filename)
             annotation = llm.annotate(curated, sample.filename)
@@ -34,14 +40,21 @@ def evaluate(llm: LLMClient) -> Report:
                 Prediction(sample.document_type, "", expected, frozenset(), False, frozenset())
             )
             continue
+        # Re-run the deterministic groundedness check against the curated text — the
+        # gate must not trust the model's self-reported grounding.
+        scored = ground_annotation(annotation, curated.text)
         predictions.append(
             Prediction(
                 expected_type=sample.document_type,
-                predicted_type=annotation.document_type,
+                predicted_type=scored.document_type,
                 expected_values=expected,
-                predicted_values=frozenset(_norm(e.value) for e in annotation.key_entities),
+                predicted_values=frozenset(
+                    _entity_key(e.type, e.value) for e in scored.key_entities
+                ),
                 schema_valid=True,
-                ungrounded_values=frozenset(_norm(v) for v in annotation.ungrounded_fields),
+                ungrounded_values=frozenset(
+                    _entity_key(e.type, e.value) for e in scored.key_entities if not e.grounded
+                ),
             )
         )
     return compute_report(predictions)

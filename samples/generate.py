@@ -14,8 +14,7 @@ from io import BytesIO
 from fpdf import FPDF
 from openpyxl import Workbook
 
-PDF = "application/pdf"
-XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+from app.adapters.parsing.content_types import PDF, XLSX
 
 
 @dataclass(frozen=True)
