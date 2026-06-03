@@ -10,7 +10,7 @@ import uuid
 
 import pytest
 
-pytest.importorskip("psycopg")  # skip when the 'infra' extra isn't installed (CI)
+psycopg = pytest.importorskip("psycopg")  # skip when the 'infra' extra isn't installed (CI)
 
 from app.adapters.outbound.store.postgres_store import PostgresAnnotationStore  # noqa: E402
 from app.domain.annotation import Annotation  # noqa: E402
@@ -25,7 +25,7 @@ _DSN = os.getenv("POSTGRES_DSN", "postgresql://colophon:colophon@localhost:5432/
 def store() -> PostgresAnnotationStore:
     try:
         return PostgresAnnotationStore(dsn=_DSN)
-    except Exception as exc:  # not reachable -> opt-in test, skip
+    except psycopg.OperationalError as exc:  # only "can't connect" -> opt-in skip
         pytest.skip(f"Postgres not reachable: {exc}")
 
 
