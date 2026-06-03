@@ -47,9 +47,20 @@ The annotation retrieved via `GET /annotations/{job_id}`, for two tenants:
 
 ## Quickstart — clone to running
 
-**Prerequisites:** Docker (or Podman) + Compose. An Anthropic API key or a local
-Ollama is optional — the stack ships an **offline `stub` model** so it runs with
-no model server.
+### Prerequisites
+
+| Tool | Why | Install |
+| --- | --- | --- |
+| [Docker](https://docs.docker.com/get-docker/) **+ Compose** (or [Podman](https://podman.io/docs/installation) + `podman compose`) | Runs the stack (api + worker + rabbitmq + minio + postgres) | macOS: `brew install --cask docker` · or `brew install podman && podman machine init && podman machine start` |
+| [uv](https://docs.astral.sh/uv/) | Runs tests / eval / scripts on the host | `curl -LsSf https://astral.sh/uv/install.sh \| sh` (or `brew install uv`) |
+| *(optional)* a model — [Anthropic](https://docs.anthropic.com/en/api/getting-started) key **or** local [Ollama](https://ollama.com/download) | A real annotation provider | `export ANTHROPIC_API_KEY=…` · or `brew install ollama && ollama pull llama3.1` |
+
+The stack ships an **offline `stub` model** (`LLM_MODEL=stub`), so you can run the
+whole thing **with no API key and no model server**.
+
+```bash
+git --version && docker compose version && uv --version   # quick sanity check
+```
 
 ```bash
 git clone https://github.com/leoneperdigao/colophon && cd colophon
@@ -442,13 +453,19 @@ service produces for each upload: a summary, a type, key entities, language — 
 colophon for every document, generated on demand. Hence the name. (This section
 is, fittingly, the README's own.)
 
-**On process (and AI assistance).** The brief permits any tools, so to be
-straight about it: this was built with heavy AI-assistant pacing (Claude) under my
-direction — I drove the architecture, the tradeoffs, and the reviews; the
-assistant accelerated the typing, the docs, the diagrams, and the test scaffolding.
-That is why the artifact count (13 ADRs, Spec Kit specs, the C4 + pipeline
-diagrams, the demo media) is higher than unaided eight-hour hand-output would be.
-The decisions are mine and I can defend each one from first principles; the volume
-is leverage, not padding. Restraint was still the rule — the *built* surface is a
-deliberately thin, tested, runnable slice, and everything advanced is marked
-"documented, not built."
+**On process (and AI assistance).** The brief permits any tools, so to be straight
+about it: I built this with **[Claude Code](https://www.anthropic.com/claude-code)**
+under my direction, using two frameworks in distinct phases —
+**[GitHub Spec Kit](https://github.com/github/spec-kit)** to *author* the committed
+artifacts (constitution → spec → plan → tasks → the OpenAPI contract) and the
+**[Superpowers](https://github.com/obra/superpowers)** plugin to *execute* against
+that task list (TDD red→green→refactor, subagents along the ports, verification
+before completion). The split is deliberate — Spec Kit owns the *what/why*,
+Superpowers the *how* — and it's documented in `CLAUDE.md`. I drove the
+architecture, the tradeoffs, and the reviews; the assistant accelerated the typing,
+docs, diagrams, and test scaffolding. That's why the artifact count (13 ADRs, the
+Spec Kit specs, the C4 + pipeline diagrams, the demo media) is higher than unaided
+eight-hour hand-output — the decisions are mine and I can defend each from first
+principles; the volume is leverage, not padding. Restraint was still the rule: the
+*built* surface is a deliberately thin, tested, runnable slice, and everything
+advanced is marked "documented, not built."
