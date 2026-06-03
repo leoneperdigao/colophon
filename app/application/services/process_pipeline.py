@@ -50,12 +50,12 @@ class ProcessPipeline:
         try:
             raw = self._blob.get_raw(tenant_id, job_id)
         except BlobNotFound as exc:
-            return self._fail(job, Stage.RAW, str(exc))
+            return self._fail(job, Stage.RAW, exc)
 
         try:
             curated = self._parser.parse(raw, job.content_type, job.source_filename)
         except ParseError as exc:
-            return self._fail(job, Stage.CURATED, str(exc))
+            return self._fail(job, Stage.CURATED, exc)
         self._store.put_curated(tenant_id, job_id, curated)
         job.advance_to(Stage.CURATED)
         self._store.update_job(job)
@@ -66,7 +66,7 @@ class ProcessPipeline:
         try:
             annotation = self._llm.annotate(curated, job.source_filename)
         except LLMError as exc:
-            return self._fail(job, Stage.ANNOTATED, str(exc))
+            return self._fail(job, Stage.ANNOTATED, exc)
         self._store.put_annotation(tenant_id, job_id, annotation)
         job.advance_to(Stage.ANNOTATED)
         job.complete()
@@ -79,8 +79,10 @@ class ProcessPipeline:
             stage=Stage.ANNOTATED.value,
         )
 
-    def _fail(self, job: Job, stage: Stage, message: str) -> None:
-        job.fail(stage=stage, message=message)
+    def _fail(self, job: Job, stage: Stage, error: Exception) -> None:
+        # str(error) is a stable, user-safe message (parsers raise generic text);
+        # the underlying cause is logged via exc_info, never surfaced to clients.
+        job.fail(stage=stage, message=str(error))
         self._store.update_job(job)
         log_event(
             _logger,
@@ -89,4 +91,5 @@ class ProcessPipeline:
             job_id=job.job_id,
             stage=stage.value,
             level=logging.WARNING,
+            exc_info=error,
         )

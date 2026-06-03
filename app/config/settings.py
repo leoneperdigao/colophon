@@ -4,17 +4,13 @@ from __future__ import annotations
 
 import os
 
+from app.adapters.parsing.content_types import SUPPORTED
+
 # Upload limits (untrusted input — Constitution IV).
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MiB
 
-ALLOWED_CONTENT_TYPES = frozenset(
-    {
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
-        "application/vnd.ms-excel",  # .xls
-        "text/csv",
-    }
-)
+# Accept only what the parser supports (single source of truth).
+ALLOWED_CONTENT_TYPES = SUPPORTED
 
 
 def load_token_map(raw: str | None = None) -> dict[str, str]:

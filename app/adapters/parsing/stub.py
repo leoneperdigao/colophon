@@ -15,5 +15,5 @@ class StubParser:
 
     def parse(self, content: bytes, content_type: str, filename: str) -> Curated:
         if self._fail or content == b"":
-            raise ParseError(f"cannot parse {filename}")
+            raise ParseError("could not parse the document")
         return Curated(text=content.decode("utf-8", errors="replace"), page_or_sheet_count=1)
