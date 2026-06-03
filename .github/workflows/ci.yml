@@ -31,13 +31,13 @@ jobs:
         run: uv sync --dev
 
       - name: Lint (ruff)
-        run: uv run ruff check app tests samples
+        run: uv run ruff check app tests samples eval
 
       - name: Format check (ruff)
-        run: uv run ruff format --check app tests samples
+        run: uv run ruff format --check app tests samples eval
 
       - name: Types (mypy)
-        run: uv run mypy app samples
+        run: uv run mypy app samples eval
 
       - name: Tests (pytest)
         run: uv run pytest
