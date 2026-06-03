@@ -31,6 +31,8 @@ def _load_pika() -> Any:
 
 class RabbitMqMessaging:
     def __init__(self, *, url: str, max_attempts: int = 3) -> None:
+        if max_attempts < 1:
+            raise ValueError("max_attempts must be >= 1 (at least one handler invocation)")
         self._pika = _load_pika()
         self._max_attempts = max_attempts
         self._connection = self._pika.BlockingConnection(self._pika.URLParameters(url))
@@ -79,20 +81,22 @@ class RabbitMqMessaging:
         Blocks forever by default (the worker). Pass `inactivity_timeout` to return
         once the queue is idle (used by tests).
         """
-        for method, properties, body in self._channel.consume(
-            WORK_QUEUE, inactivity_timeout=inactivity_timeout
-        ):
-            if method is None:  # idle past the timeout
-                break
-            attempt = (properties.headers or {}).get(_ATTEMPT_HEADER, 0)
-            try:
-                handler(self._decode(body))
-            except Exception:  # noqa: BLE001 - any handler failure is retried/dead-lettered
-                if attempt + 1 < self._max_attempts:
-                    self._publish(body, attempt=attempt + 1)  # retry a fresh copy
-                    self._channel.basic_ack(method.delivery_tag)
-                else:
-                    self._channel.basic_nack(method.delivery_tag, requeue=False)  # -> DLX/DLQ
-                continue
-            self._channel.basic_ack(method.delivery_tag)
-        self._channel.cancel()
+        try:
+            for method, properties, body in self._channel.consume(
+                WORK_QUEUE, inactivity_timeout=inactivity_timeout
+            ):
+                if method is None:  # idle past the timeout
+                    break
+                attempt = (properties.headers or {}).get(_ATTEMPT_HEADER, 0)
+                try:
+                    handler(self._decode(body))
+                except Exception:  # noqa: BLE001 - any handler failure is retried/dead-lettered
+                    if attempt + 1 < self._max_attempts:
+                        self._publish(body, attempt=attempt + 1)  # retry a fresh copy
+                        self._channel.basic_ack(method.delivery_tag)
+                    else:
+                        self._channel.basic_nack(method.delivery_tag, requeue=False)  # -> DLX/DLQ
+                    continue
+                self._channel.basic_ack(method.delivery_tag)
+        finally:
+            self._channel.cancel()  # always release the server-side consumer
