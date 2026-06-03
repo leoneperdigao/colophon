@@ -108,13 +108,9 @@ worker does the slow part out of band.
 
 ### The async pipeline
 
-```
-POST /documents ──> validate ──> put raw (MinIO) ──> create job (Postgres) ──> enqueue (RabbitMQ) ──> 202 + job_id
-                                                                                        │
-RabbitMQ ──deliver──> Worker: get raw ──> parse (curated) ──> annotate (LLM) ──> store ──> job: completed
-                                  └─ on failure: bounded retry ─> DLX ─> DLQ, job: failed@stage
-GET /annotations/{job_id} ──> read (Postgres), tenant-scoped
-```
+<p align="center">
+  <img src="docs/assets/pipeline.svg" alt="Async pipeline: synchronous upload returns 202 + job_id, then a background worker runs raw → curated → annotated, with bounded retry to a DLQ on failure" width="940">
+</p>
 
 Stages are **forward-only** and each is persisted, so a redelivered message can't
 double-process or overwrite a completed result, and any stage is replayable from

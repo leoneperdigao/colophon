@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 560" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Async pipeline: synchronous upload, then background raw to curated to annotated">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b6b7b"/>
+    </marker>
+    <style>
+      .title  { font-size: 24px; font-weight: 700; fill: #0b2540; }
+      .sub    { font-size: 13.5px; fill: #5b6b7b; }
+      .lane   { font-size: 12px; font-weight: 600; fill: #6a7a8a; letter-spacing: .05em; }
+      .name   { font-size: 15px; font-weight: 700; fill: #ffffff; }
+      .small  { font-size: 11px; fill: #dfeafb; }
+      .stage  { font-size: 15px; font-weight: 800; fill: #ffffff; letter-spacing: .03em; }
+      .sdesc  { font-size: 10.5px; fill: #dfeafb; }
+      .lbl    { font-size: 11px; fill: #3a4a5a; }
+      .edge   { stroke: #5b6b7b; stroke-width: 1.6; fill: none; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1240" height="560" fill="#f7f9fc"/>
+  <text x="40" y="44" class="title">Async pipeline — raw → curated → annotated</text>
+  <text x="41" y="66" class="sub">forward-only, idempotent stages; the slow work runs off the request path. A redelivery can't double-process or overwrite a completed result.</text>
+
+  <!-- ===================== animated flow paths ===================== -->
+  <path id="f_post"  d="M186,168 L288,168" class="edge" marker-end="url(#ar)"/>
+  <path id="f_enq"   d="M476,168 L540,168" class="edge" marker-end="url(#ar)"/>
+  <path id="f_ret"   d="M288,206 C232,252 168,252 118,212" class="edge" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+  <path id="f_del"   d="M615,212 C615,258 606,284 600,308" class="edge" marker-end="url(#ar)"/>
+  <path id="f_s1"    d="M474,388 L498,388" class="edge" marker-end="url(#ar)"/>
+  <path id="f_s2"    d="M704,388 L728,388" class="edge" marker-end="url(#ar)"/>
+  <path id="f_done"  d="M958,388 L1004,388" class="edge" marker-end="url(#ar)"/>
+  <path id="f_fail"  d="M604,452 L604,486" class="edge" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+  <path id="f_dots"  d="M270,388 L948,388" fill="none" stroke="none"/>
+
+  <!-- ===================== edge labels ===================== -->
+  <text x="237" y="156" text-anchor="middle" class="lbl">POST /documents</text>
+  <text x="508" y="156" text-anchor="middle" class="lbl">enqueue work</text>
+  <text x="176" y="270" text-anchor="middle" class="lbl">202 + job_id  (immediate)</text>
+  <text x="628" y="262" class="lbl">deliver (prefetch=1)</text>
+  <text x="614" y="474" class="lbl">after N attempts</text>
+
+  <!-- ===================== SYNC lane ===================== -->
+  <text x="40" y="104" class="lane">SYNCHRONOUS · returns within the request timeout</text>
+  <g>
+    <rect x="46" y="128" width="140" height="80" rx="10" fill="#0b4a82"/>
+    <text x="116" y="162" text-anchor="middle" class="name">Tenant client</text>
+    <text x="116" y="182" text-anchor="middle" class="small">bearer → tenant</text>
+  </g>
+  <g>
+    <rect x="288" y="120" width="190" height="96" rx="10" fill="#1168bd"/>
+    <text x="304" y="148" class="name">API</text>
+    <text x="304" y="170" class="small">validate upload (size · type)</text>
+    <text x="304" y="186" class="small">put raw → MinIO · create job → PG</text>
+    <text x="304" y="202" class="small">content-addressed job_id</text>
+  </g>
+  <g>
+    <rect x="540" y="128" width="150" height="80" rx="10" fill="#3b7ea1"/>
+    <text x="615" y="162" text-anchor="middle" class="name">Work queue</text>
+    <text x="615" y="182" text-anchor="middle" class="small">RabbitMQ · durable</text>
+  </g>
+
+  <!-- ===================== ASYNC lane ===================== -->
+  <text x="40" y="296" class="lane">ASYNCHRONOUS · background worker (idempotent on redelivery)</text>
+  <!-- worker container -->
+  <rect x="250" y="312" width="716" height="152" rx="12" fill="#eef4fb" stroke="#1168bd" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="266" y="334" class="lane" fill="#1168bd">WORKER — raw → curated → annotated</text>
+
+  <!-- stage chips -->
+  <g>
+    <rect x="266" y="344" width="208" height="104" rx="9" fill="#5a93b8"/>
+    <text x="282" y="372" class="stage">RAW</text>
+    <text x="282" y="394" class="sdesc">get raw bytes ← MinIO</text>
+    <text x="282" y="410" class="sdesc">immutable, tenant-prefixed</text>
+    <text x="282" y="430" class="sdesc">stage persisted</text>
+  </g>
+  <g>
+    <rect x="498" y="344" width="206" height="104" rx="9" fill="#2f7aa6"/>
+    <text x="514" y="372" class="stage">CURATED</text>
+    <text x="514" y="394" class="sdesc">parse → text + structure</text>
+    <text x="514" y="410" class="sdesc">timeouts · page/sheet/cell caps</text>
+    <text x="514" y="430" class="sdesc">values, never formulas</text>
+  </g>
+  <g>
+    <rect x="728" y="344" width="222" height="104" rx="9" fill="#1168bd"/>
+    <text x="744" y="372" class="stage">ANNOTATED</text>
+    <text x="744" y="394" class="sdesc">classify → extract (tool-use)</text>
+    <text x="744" y="410" class="sdesc">validate / repair → strict JSON</text>
+    <text x="744" y="430" class="sdesc">deterministic groundedness</text>
+  </g>
+
+  <!-- completed -->
+  <g>
+    <rect x="1004" y="346" width="196" height="84" rx="10" fill="#2bb673"/>
+    <text x="1102" y="380" text-anchor="middle" class="name">completed</text>
+    <text x="1102" y="400" text-anchor="middle" class="small">annotation stored → Postgres</text>
+  </g>
+
+  <!-- failure branch -->
+  <g>
+    <rect x="414" y="488" width="380" height="56" rx="10" fill="#7a5b8a"/>
+    <text x="430" y="512" class="name">bounded retry → DLX → DLQ</text>
+    <text x="430" y="531" class="small">poison message isolated · job: failed @ stage (cause logged)</text>
+  </g>
+
+  <!-- poll note -->
+  <text x="1004" y="452" class="lbl">↑ returned by GET /annotations/{job_id}</text>
+  <text x="1004" y="468" class="lbl">tenant-scoped · 404 cross-tenant</text>
+
+  <!-- ===================== animated dots ===================== -->
+  <g fill="#f5a623">
+    <circle r="5"><animateMotion dur="2.4s" begin="0s"   repeatCount="indefinite"><mpath href="#f_post"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="2.4s" begin="0.4s" repeatCount="indefinite"><mpath href="#f_enq"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="2.4s" begin="0.8s" repeatCount="indefinite"><mpath href="#f_del"/></animateMotion></circle>
+    <circle r="5" fill="#2bb673"><animateMotion dur="3.2s" begin="1.2s" repeatCount="indefinite"><mpath href="#f_dots"/></animateMotion></circle>
+    <circle r="5" fill="#2bb673"><animateMotion dur="2.4s" begin="2.2s" repeatCount="indefinite"><mpath href="#f_done"/></animateMotion></circle>
+  </g>
+</svg>
