@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 730" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="C4 container diagram of the Document Annotation Service">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b6b7b"/>
+    </marker>
+    <style>
+      .title   { font-size: 26px; font-weight: 700; fill: #0b2540; }
+      .subtitle{ font-size: 14px; fill: #5b6b7b; }
+      .bname   { font-size: 17px; font-weight: 700; fill: #ffffff; }
+      .btype   { font-size: 11.5px; fill: #cfe0f4; }
+      .bdesc   { font-size: 11.5px; fill: #eaf1fb; }
+      .pname   { font-size: 16px; font-weight: 700; fill: #ffffff; }
+      .ptype   { font-size: 11px; fill: #d6def0; }
+      .ext     { fill: #ffffff; }
+      .exttype { fill: #e6e6e6; }
+      .edge    { stroke: #5b6b7b; stroke-width: 1.6; fill: none; }
+      .edgelbl { font-size: 11.5px; fill: #3a4a5a; }
+      .blbl    { font-size: 13px; font-weight: 600; fill: #6a7a8a; letter-spacing: .04em; }
+      .legend  { font-size: 11.5px; fill: #3a4a5a; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1100" height="730" fill="#f7f9fc"/>
+  <text x="40" y="46" class="title">Document Annotation Service</text>
+  <text x="41" y="66" class="subtitle">C4 — Container diagram · event-driven: upload → 202 + job_id → async raw→curated→annotated → poll</text>
+
+  <!-- system boundary -->
+  <rect x="270" y="100" width="540" height="588" rx="14" fill="none" stroke="#9fb0c3" stroke-width="1.6" stroke-dasharray="7 6"/>
+  <text x="290" y="126" class="blbl">SYSTEM BOUNDARY — colophon (docker-compose; ports &amp; adapters)</text>
+
+  <!-- ===================== animated flow paths (defined once, reused) ===================== -->
+  <!-- 1 request in -->
+  <path id="p_req"   d="M212,224 L300,206" class="edge" marker-end="url(#arrow)"/>
+  <!-- 2 enqueue -->
+  <path id="p_enq"   d="M415,250 L415,300" class="edge" marker-end="url(#arrow)"/>
+  <!-- 3 deliver -->
+  <path id="p_del"   d="M415,392 L415,450" class="edge" marker-end="url(#arrow)"/>
+  <!-- 4 put raw -->
+  <path id="p_put"   d="M530,188 L600,192" class="edge" marker-end="url(#arrow)"/>
+  <!-- 5 create job -->
+  <path id="p_job"   d="M530,232 C566,266 576,300 600,330" class="edge" marker-end="url(#arrow)"/>
+  <!-- 6 get raw -->
+  <path id="p_get"   d="M530,476 C566,360 580,250 600,214" class="edge" marker-end="url(#arrow)"/>
+  <!-- 7 write curated/annotated -->
+  <path id="p_wr"    d="M530,502 C566,432 580,384 600,360" class="edge" marker-end="url(#arrow)"/>
+  <!-- 8 annotate (LLM) -->
+  <path id="p_llm"   d="M530,520 C690,648 868,556 905,402" class="edge" marker-end="url(#arrow)"/>
+  <!-- 9 dead-letter -->
+  <path id="p_dlq"   d="M470,392 C520,442 560,470 600,492" class="edge" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+
+  <!-- ===================== edge labels ===================== -->
+  <text x="256" y="196" text-anchor="middle" class="edgelbl" font-size="10">POST /documents</text>
+  <text x="256" y="248" text-anchor="middle" class="edgelbl" font-size="10">GET /annotations</text>
+  <text x="424" y="282" class="edgelbl">enqueue work</text>
+  <text x="424" y="428" class="edgelbl">deliver (prefetch=1)</text>
+  <text x="540" y="176" class="edgelbl">put raw</text>
+  <text x="544" y="300" class="edgelbl">create job</text>
+  <text x="430" y="360" class="edgelbl" transform="rotate(-32 470 360)">get raw</text>
+  <text x="540" y="430" class="edgelbl">curated → annotated</text>
+  <text x="612" y="600" class="edgelbl">annotate (tool-use, strict JSON)</text>
+  <text x="536" y="452" class="edgelbl" font-size="10.5">dead-letter</text>
+
+  <!-- ===================== person ===================== -->
+  <g>
+    <rect x="40" y="170" width="172" height="118" rx="10" fill="#0b4a82"/>
+    <circle cx="126" cy="206" r="15" fill="#cfe0f4"/>
+    <rect x="103" y="224" width="46" height="26" rx="13" fill="#cfe0f4"/>
+    <text x="126" y="272" text-anchor="middle" class="pname">Tenant client</text>
+    <text x="126" y="289" text-anchor="middle" class="ptype">[Person] bearer token → tenant</text>
+  </g>
+
+  <!-- ===================== our containers ===================== -->
+  <g>
+    <rect x="300" y="150" width="230" height="100" rx="10" fill="#1168bd"/>
+    <text x="316" y="178" class="bname">API</text>
+    <text x="316" y="196" class="btype">[Container: FastAPI · uvicorn]</text>
+    <text x="316" y="216" class="bdesc">auth → tenant; validates upload;</text>
+    <text x="316" y="232" class="bdesc">content-addressed job_id; enqueues;</text>
+    <text x="316" y="248" class="bdesc">tenant-scoped reads (404 on miss)</text>
+  </g>
+  <g>
+    <rect x="300" y="300" width="230" height="92" rx="10" fill="#3b7ea1"/>
+    <text x="316" y="328" class="bname">Message broker</text>
+    <text x="316" y="346" class="btype">[Container: RabbitMQ]</text>
+    <text x="316" y="366" class="bdesc">durable work queue · topic events</text>
+    <text x="316" y="382" class="bdesc">DLX → DLQ (bounded retry, ADR-0004)</text>
+  </g>
+  <g>
+    <rect x="300" y="450" width="230" height="100" rx="10" fill="#1168bd"/>
+    <text x="316" y="478" class="bname">Worker</text>
+    <text x="316" y="496" class="btype">[Container: Python consumer]</text>
+    <text x="316" y="516" class="bdesc">raw→curated→annotated; forward-only</text>
+    <text x="316" y="532" class="bdesc">stages; idempotent on redelivery;</text>
+    <text x="316" y="548" class="bdesc">bounded annotation agent (ADR-0007)</text>
+  </g>
+
+  <!-- ===================== datastores ===================== -->
+  <g>
+    <rect x="600" y="150" width="190" height="88" rx="10" fill="#3b7ea1"/>
+    <text x="616" y="178" class="bname">Blob store</text>
+    <text x="616" y="196" class="btype">[Container: MinIO · S3 API]</text>
+    <text x="616" y="216" class="bdesc">raw uploads, immutable,</text>
+    <text x="616" y="232" class="bdesc">tenant-prefixed keys</text>
+  </g>
+  <g>
+    <rect x="600" y="300" width="190" height="92" rx="10" fill="#3b7ea1"/>
+    <text x="616" y="328" class="bname">Annotation store</text>
+    <text x="616" y="346" class="btype">[Container: Postgres]</text>
+    <text x="616" y="366" class="bdesc">jobs · curated · annotated;</text>
+    <text x="616" y="382" class="bdesc">every row tenant-scoped</text>
+  </g>
+  <g>
+    <rect x="600" y="470" width="190" height="74" rx="10" fill="#7a5b8a"/>
+    <text x="616" y="498" class="bname">Dead-letter queue</text>
+    <text x="616" y="516" class="btype">[RabbitMQ DLQ]</text>
+    <text x="616" y="534" class="bdesc">poison messages, isolated</text>
+  </g>
+
+  <!-- ===================== external system ===================== -->
+  <g>
+    <rect x="880" y="302" width="180" height="100" rx="10" fill="#8a8a8a"/>
+    <text x="896" y="330" class="bname ext">LLM provider</text>
+    <text x="896" y="348" class="btype exttype">[External: LiteLLM →]</text>
+    <text x="896" y="368" class="bdesc exttype">Anthropic (cloud) or</text>
+    <text x="896" y="384" class="bdesc exttype">Ollama (local) by model id</text>
+    <text x="896" y="400" class="bdesc exttype">key only in the gateway</text>
+  </g>
+
+  <!-- ===================== animated flow dots ===================== -->
+  <g fill="#f5a623">
+    <circle r="5"><animateMotion dur="2.6s" begin="0s"   repeatCount="indefinite" rotate="auto"><mpath href="#p_req"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="2.6s" begin="0.5s" repeatCount="indefinite"><mpath href="#p_enq"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="2.6s" begin="1.0s" repeatCount="indefinite"><mpath href="#p_del"/></animateMotion></circle>
+    <circle r="5"><animateMotion dur="2.6s" begin="1.5s" repeatCount="indefinite"><mpath href="#p_get"/></animateMotion></circle>
+    <circle r="5" fill="#2bb673"><animateMotion dur="2.6s" begin="2.0s" repeatCount="indefinite"><mpath href="#p_llm"/></animateMotion></circle>
+    <circle r="5" fill="#2bb673"><animateMotion dur="2.6s" begin="2.4s" repeatCount="indefinite"><mpath href="#p_wr"/></animateMotion></circle>
+  </g>
+
+  <!-- ===================== legend ===================== -->
+  <g transform="translate(40,628)">
+    <text x="0" y="0" class="blbl">LEGEND</text>
+    <rect x="0" y="12" width="20" height="14" rx="3" fill="#0b4a82"/><text x="28" y="23" class="legend">Person</text>
+    <rect x="92" y="12" width="20" height="14" rx="3" fill="#1168bd"/><text x="120" y="23" class="legend">Our container</text>
+    <rect x="222" y="12" width="20" height="14" rx="3" fill="#3b7ea1"/><text x="250" y="23" class="legend">Infrastructure</text>
+    <rect x="360" y="12" width="20" height="14" rx="3" fill="#8a8a8a"/><text x="388" y="23" class="legend">External system</text>
+    <circle cx="512" cy="19" r="5" fill="#f5a623"/><text x="524" y="23" class="legend">request / fetch path</text>
+    <circle cx="660" cy="19" r="5" fill="#2bb673"/><text x="672" y="23" class="legend">async pipeline path</text>
+  </g>
+</svg>
