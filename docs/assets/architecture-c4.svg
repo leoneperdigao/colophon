@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 880" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="C4 container diagram of the Document Annotation Service">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 900" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="C4 container diagram of the Document Annotation Service">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#5b6b7b"/>
@@ -20,7 +20,7 @@
     </style>
   </defs>
 
-  <rect x="0" y="0" width="1240" height="880" fill="#f7f9fc"/>
+  <rect x="0" y="0" width="1240" height="900" fill="#f7f9fc"/>
   <text x="40" y="52" class="title">Document Annotation Service</text>
   <text x="41" y="74" class="subtitle">C4 — Container diagram · event-driven: upload → 202 + job_id → async raw→curated→annotated → poll</text>
 
@@ -32,11 +32,11 @@
   <path id="p_req" d="M230,245 L350,245" class="edge" marker-end="url(#arrow)"/>
   <path id="p_enq" d="M475,305 L475,375" class="edge" marker-end="url(#arrow)"/>
   <path id="p_del" d="M475,490 L475,570" class="edge" marker-end="url(#arrow)"/>
-  <path id="p_put" d="M600,226 L710,230" class="edge" marker-end="url(#arrow)"/>
+  <path id="p_put" d="M600,237 L710,237" class="edge" marker-end="url(#arrow)"/>
   <path id="p_job" d="M600,278 C648,332 662,386 710,420" class="edge" marker-end="url(#arrow)"/>
-  <path id="p_get" d="M600,606 C672,472 724,332 760,300" class="edge" marker-end="url(#arrow)"/>
+  <path id="p_get" d="M600,606 C672,476 724,338 763,291" class="edge" marker-end="url(#arrow)"/>
   <path id="p_wr"  d="M600,636 C662,562 706,508 745,488" class="edge" marker-end="url(#arrow)"/>
-  <path id="p_llm" d="M600,666 C824,812 1004,728 1052,508" class="edge" marker-end="url(#arrow)"/>
+  <path id="p_llm" d="M600,690 C800,770 1010,760 1080,505" class="edge" marker-end="url(#arrow)"/>
   <path id="p_dlq" d="M600,476 C664,548 706,578 745,590" class="edge" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
 
   <!-- ===================== edge labels ===================== -->
@@ -49,7 +49,7 @@
   <text x="636" y="462" text-anchor="middle" class="edgelbl">get raw</text>
   <text x="654" y="604" text-anchor="middle" class="edgelbl" font-size="10.5">curated→annotated</text>
   <text x="652" y="516" text-anchor="middle" class="edgelbl">dead-letter</text>
-  <text x="760" y="742" class="edgelbl">annotate (tool-use, strict JSON)</text>
+  <text x="816" y="800" text-anchor="middle" class="edgelbl">annotate (tool-use, strict JSON)</text>
 
   <!-- ===================== person ===================== -->
   <g>
@@ -87,11 +87,11 @@
 
   <!-- ===================== datastores ===================== -->
   <g>
-    <rect x="710" y="190" width="210" height="105" rx="10" fill="#3b7ea1"/>
-    <text x="728" y="219" class="bname">Blob store</text>
-    <text x="728" y="237" class="btype">[Container: MinIO · S3 API]</text>
-    <text x="728" y="259" class="bdesc">raw uploads, immutable,</text>
-    <text x="728" y="276" class="bdesc">tenant-prefixed keys</text>
+    <rect x="710" y="185" width="210" height="105" rx="10" fill="#3b7ea1"/>
+    <text x="728" y="214" class="bname">Blob store</text>
+    <text x="728" y="232" class="btype">[Container: MinIO · S3 API]</text>
+    <text x="728" y="254" class="bdesc">raw uploads, immutable,</text>
+    <text x="728" y="271" class="bdesc">tenant-prefixed keys</text>
   </g>
   <g>
     <rect x="710" y="380" width="210" height="105" rx="10" fill="#3b7ea1"/>
@@ -128,7 +128,7 @@
   </g>
 
   <!-- ===================== legend (below the boundary) ===================== -->
-  <g transform="translate(40,812)">
+  <g transform="translate(40,848)">
     <text x="0" y="0" class="blbl">LEGEND</text>
     <rect x="92" y="-11" width="20" height="14" rx="3" fill="#0b4a82"/><text x="120" y="0" class="legend">Person</text>
     <rect x="184" y="-11" width="20" height="14" rx="3" fill="#1168bd"/><text x="212" y="0" class="legend">Our container</text>
