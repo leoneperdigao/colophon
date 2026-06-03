@@ -14,6 +14,8 @@ from minio.error import S3Error
 
 from app.application.ports.blob_store import BlobNotFound
 
+_MISSING_CODES = frozenset({"NoSuchKey", "NoSuchObject"})
+
 
 class MinioBlobStore:
     def __init__(
@@ -36,8 +38,10 @@ class MinioBlobStore:
 
     def put_raw(self, tenant_id: str, job_id: str, filename: str, content: bytes) -> str:
         key = self._key(tenant_id, job_id)
-        if not self._exists(key):  # immutable: first write wins
-            self._client.put_object(self._bucket, key, BytesIO(content), length=len(content))
+        # job_id is content-addressed (SHA-256 of tenant+filename+content), so any two
+        # writes to the same key carry identical bytes. A single PUT is atomic and
+        # idempotent — "first write wins" without a racy check-then-put.
+        self._client.put_object(self._bucket, key, BytesIO(content), length=len(content))
         return key
 
     def get_raw(self, tenant_id: str, job_id: str) -> bytes:
@@ -45,19 +49,12 @@ class MinioBlobStore:
         try:
             response = self._client.get_object(self._bucket, key)
         except S3Error as exc:
-            raise BlobNotFound(f"no raw blob for {tenant_id}/{job_id}") from exc
+            if exc.code in _MISSING_CODES:
+                raise BlobNotFound(f"no raw blob for {tenant_id}/{job_id}") from exc
+            raise  # permission / bucket / network — surface it, don't mask as "missing"
         try:
             data: bytes = response.read()
             return data
         finally:
             response.close()
             response.release_conn()
-
-    def _exists(self, key: str) -> bool:
-        try:
-            self._client.stat_object(self._bucket, key)
-        except S3Error as exc:
-            if exc.code in {"NoSuchKey", "NoSuchObject"}:
-                return False
-            raise
-        return True

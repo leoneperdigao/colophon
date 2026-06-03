@@ -52,8 +52,10 @@ def test_keys_are_tenant_scoped(store: MinioBlobStore) -> None:
     assert store.get_raw("tenant-b", job) == b"BBB"
 
 
-def test_raw_is_immutable_first_write_wins(store: MinioBlobStore) -> None:
+def test_put_is_idempotent_for_identical_content(store: MinioBlobStore) -> None:
+    # job_id is content-addressed, so re-writing the same key is the same bytes.
     job = uuid.uuid4().hex
-    store.put_raw("t1", job, "f", b"first")
-    store.put_raw("t1", job, "f", b"second")  # ignored
-    assert store.get_raw("t1", job) == b"first"
+    key_a = store.put_raw("t1", job, "f", b"same-bytes")
+    key_b = store.put_raw("t1", job, "f", b"same-bytes")
+    assert key_a == key_b
+    assert store.get_raw("t1", job) == b"same-bytes"
