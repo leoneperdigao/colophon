@@ -36,3 +36,27 @@ def test_ingest_creates_queued_job_writes_raw_and_enqueues_once() -> None:
     assert job.size_bytes == 5
     assert blob.get_raw("t1", job_id) == b"hello"
     assert messaging.enqueued == [WorkMessage(tenant_id="t1", job_id=job_id)]
+
+
+def test_ingest_is_idempotent_for_same_tenant_and_content() -> None:
+    svc, _, _, messaging = _svc()
+    first = svc.execute(
+        tenant_id="t1", filename="f.pdf", content_type="application/pdf", content=b"hello"
+    )
+    second = svc.execute(
+        tenant_id="t1", filename="f.pdf", content_type="application/pdf", content=b"hello"
+    )
+    assert first == second
+    assert len(messaging.enqueued) == 1  # re-upload must not enqueue a second run
+
+
+def test_ingest_same_content_different_tenants_are_distinct() -> None:
+    svc, _, _, messaging = _svc()
+    a = svc.execute(
+        tenant_id="t1", filename="f.pdf", content_type="application/pdf", content=b"hello"
+    )
+    b = svc.execute(
+        tenant_id="t2", filename="f.pdf", content_type="application/pdf", content=b"hello"
+    )
+    assert a != b
+    assert len(messaging.enqueued) == 2

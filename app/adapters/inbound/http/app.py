@@ -7,6 +7,7 @@ from app.config.container import Container
 
 
 def create_app(container: Container) -> FastAPI:
+    # Logging configuration is owned by the process entrypoint, not this factory.
     app = FastAPI(title="Document Annotation Service")
     app.state.container = container
     app.state.token_map = container.token_map
