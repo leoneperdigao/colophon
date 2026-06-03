@@ -26,4 +26,5 @@ ADRs are **immutable once Accepted** — to change one, add a new ADR that
 | [0007](./0007-single-bounded-annotation-agent.md) | Single bounded annotation agent, not multi-agent | Accepted |
 | [0008](./0008-tenancy-isolation-pooled-now-siloed-documented.md) | Tenancy isolation: pooled now, siloed documented | Accepted |
 | [0009](./0009-local-llm-via-ollama.md) | Local LLM via Ollama (one LiteLLM transport) | Accepted |
+| [0010](./0010-load-testing-and-robustness.md) | Load testing & robustness strategy | Accepted |
 | [0012](./0012-multi-client-customization-and-extension.md) | Multi-client customization & extension model | Accepted |
