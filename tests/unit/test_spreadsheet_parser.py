@@ -41,6 +41,13 @@ def test_counts_sheets_and_enforces_cap() -> None:
         SpreadsheetParser(max_sheets=1).parse(content, XLSX, "f.xlsx")
 
 
+def test_enforces_cell_cap() -> None:
+    content = _make_xlsx({"S": [(f"A{i}", f"v{i}") for i in range(1, 6)]})  # 5 cells
+    with pytest.raises(ParseError) as exc_info:
+        SpreadsheetParser(max_cells=3).parse(content, XLSX, "f.xlsx")
+    assert "cell limit" in str(exc_info.value)
+
+
 def test_corrupt_spreadsheet_raises_user_safe_parse_error() -> None:
     with pytest.raises(ParseError) as exc_info:
         SpreadsheetParser().parse(b"not a spreadsheet", XLSX, "SECRET-NAME.xlsx")
