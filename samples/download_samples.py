@@ -35,7 +35,8 @@ class Sample:
 
 
 # A deliberately varied set: clean text, annotations, links, an encrypted PDF
-# (graceful-failure case), plus normal / empty / blank-row spreadsheets.
+# (graceful-failure case), image-heavy / scanned-image-only / large multi-page
+# PDFs, plus normal / empty / blank-row spreadsheets.
 MANIFEST: tuple[Sample, ...] = (
     Sample(
         "pdf",
@@ -56,6 +57,24 @@ MANIFEST: tuple[Sample, ...] = (
         "pdf",
         f"{_PYPDF}/005-libreoffice-writer-password/libreoffice-writer-password.pdf",
         "pdf-password-protected.pdf",
+        _PYPDF_LICENSE,
+    ),
+    Sample(
+        "pdf",
+        f"{_PYPDF}/003-pdflatex-image/pdflatex-image.pdf",
+        "pdf-image-with-text.pdf",  # embedded image + text
+        _PYPDF_LICENSE,
+    ),
+    Sample(
+        "pdf",
+        f"{_PYPDF}/007-imagemagick-images/imagemagick-CCITTFaxDecode.pdf",
+        "pdf-scanned-image-only.pdf",  # image-only -> no extractable text (graceful low-signal)
+        _PYPDF_LICENSE,
+    ),
+    Sample(
+        "pdf",
+        f"{_PYPDF}/009-pdflatex-geotopo/GeoTopo.pdf",
+        "pdf-large-multipage.pdf",  # ~5 MB multi-page real document (file-size range)
         _PYPDF_LICENSE,
     ),
     Sample("xlsx", f"{_PANDAS}/test_converters.xlsx", "xlsx-converters.xlsx", _PANDAS_LICENSE),
