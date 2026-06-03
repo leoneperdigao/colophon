@@ -11,13 +11,22 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
-import psycopg
-from psycopg.types.json import Jsonb
-
 from app.domain.annotation import Annotation
 from app.domain.job import Job, Stage, StageError, Status
 from app.domain.key_entity import KeyEntity
 from app.domain.stage_result import Curated
+
+
+def _load_psycopg() -> tuple[Any, Any]:
+    """Import psycopg lazily so the module is importable without the 'infra' extra;
+    fail fast with a clear message only when the adapter is actually instantiated."""
+    try:
+        import psycopg
+        from psycopg.types.json import Jsonb
+    except ImportError as exc:  # the 'infra' extra isn't installed
+        raise RuntimeError("psycopg is not installed — install the 'infra' extra") from exc
+    return psycopg, Jsonb
+
 
 _SCHEMA: tuple[str, ...] = (
     """CREATE TABLE IF NOT EXISTS jobs (
@@ -41,9 +50,14 @@ _SCHEMA: tuple[str, ...] = (
 
 class PostgresAnnotationStore:
     def __init__(self, *, dsn: str) -> None:
+        psycopg, self._jsonb = _load_psycopg()
         self._conn = psycopg.connect(dsn, autocommit=True)
         for statement in _SCHEMA:
             self._conn.execute(statement)
+
+    def close(self) -> None:
+        """Close the database connection (call on shutdown / in test teardown)."""
+        self._conn.close()
 
     def create_job(self, job: Job) -> None:
         self._conn.execute(
@@ -117,7 +131,7 @@ class PostgresAnnotationStore:
                 tenant_id,
                 job_id,
                 curated.text,
-                Jsonb(curated.structure),
+                self._jsonb(curated.structure),
                 curated.page_or_sheet_count,
                 curated.detected_type_hint,
             ),
@@ -140,7 +154,7 @@ class PostgresAnnotationStore:
         self._conn.execute(
             """INSERT INTO annotated (tenant_id, job_id, payload) VALUES (%s,%s,%s)
                ON CONFLICT (tenant_id, job_id) DO UPDATE SET payload=EXCLUDED.payload""",
-            (tenant_id, job_id, Jsonb(asdict(annotation))),
+            (tenant_id, job_id, self._jsonb(asdict(annotation))),
         )
 
     def get_annotation(self, tenant_id: str, job_id: str) -> Annotation | None:

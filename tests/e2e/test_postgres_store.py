@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import uuid
+from collections.abc import Iterator
 
 import pytest
 
@@ -21,12 +22,14 @@ from app.domain.stage_result import Curated  # noqa: E402
 _DSN = os.getenv("POSTGRES_DSN", "postgresql://colophon:colophon@localhost:5432/colophon")
 
 
-@pytest.fixture
-def store() -> PostgresAnnotationStore:
+@pytest.fixture(scope="session")
+def store() -> Iterator[PostgresAnnotationStore]:
     try:
-        return PostgresAnnotationStore(dsn=_DSN)
+        adapter = PostgresAnnotationStore(dsn=_DSN)
     except psycopg.OperationalError as exc:  # only "can't connect" -> opt-in skip
         pytest.skip(f"Postgres not reachable: {exc}")
+    yield adapter  # one connection + schema init for the whole session
+    adapter.close()
 
 
 def _job(tenant: str, job_id: str) -> Job:
