@@ -28,6 +28,32 @@ MAX_UPLOAD_BYTES = int_env("MAX_UPLOAD_BYTES", 10 * 1024 * 1024)
 ALLOWED_CONTENT_TYPES = SUPPORTED
 
 
+def app_profile() -> str:
+    """Adapter wiring profile: 'memory' (default — no infra, CI/skeleton) or 'local'
+    (real RabbitMQ/MinIO/Postgres). Production picks 'local' and points the infra
+    env vars at managed services."""
+    return os.getenv("APP_PROFILE", "memory").strip().lower()
+
+
+def rabbitmq_url() -> str:
+    return os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+
+
+def postgres_dsn() -> str:
+    return os.getenv("DATABASE_URL", "postgresql://colophon:colophon@localhost:5432/colophon")
+
+
+def minio_config() -> dict[str, object]:
+    """MinIO/S3 connection settings (least-privilege creds supplied per deployment)."""
+    return {
+        "endpoint": os.getenv("MINIO_ENDPOINT", "localhost:9000"),
+        "access_key": os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
+        "secret_key": os.getenv("MINIO_SECRET_KEY", "minioadmin"),
+        "bucket": os.getenv("MINIO_BUCKET", "colophon-raw"),
+        "secure": os.getenv("MINIO_SECURE", "false").strip().lower() == "true",
+    }
+
+
 def llm_model() -> str:
     """LiteLLM model id. Defaults to a local Ollama model for infra-free testing;
     set e.g. `anthropic/claude-3-5-haiku-latest` (+ ANTHROPIC_API_KEY) for cloud."""
