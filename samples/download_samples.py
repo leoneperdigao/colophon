@@ -17,8 +17,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-_PYPDF = "https://raw.githubusercontent.com/py-pdf/sample-files/main"
-_PANDAS = "https://raw.githubusercontent.com/pandas-dev/pandas/main/pandas/tests/io/data/excel"
+# Pinned to specific commits for reproducibility (upstream `main` moves). To
+# refresh, bump these SHAs to a newer commit and re-verify the file paths exist.
+_PYPDF_REF = "818dc013ad1f537198e9fcfae8a6b0dffe25ffa3"
+_PANDAS_REF = "1e1d67b5f67044c658d18986d2d8d4a6c8ec3521"
+_PYPDF = f"https://raw.githubusercontent.com/py-pdf/sample-files/{_PYPDF_REF}"
+_PANDAS = (
+    f"https://raw.githubusercontent.com/pandas-dev/pandas/{_PANDAS_REF}/pandas/tests/io/data/excel"
+)
 _PYPDF_LICENSE = "CC-BY-SA-4.0 (py-pdf/sample-files)"
 _PANDAS_LICENSE = "BSD-3-Clause (pandas-dev/pandas)"
 

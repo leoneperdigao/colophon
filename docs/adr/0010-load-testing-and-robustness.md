@@ -38,8 +38,9 @@ spike; zero lost or duplicated jobs under worker kill.
 **Built (and tested) now:**
 - **Decoupling / backpressure** — the queue buffers bursts; the API never blocks
   on processing.
-- **Bounded per-document resources** — upload size cap, parse **wall-clock
-  timeout** + page/sheet/cell caps (a crafted doc can't pin a worker).
+- **Bounded per-document resources** — upload size cap (bounded read → 413) and
+  page/sheet caps; a **parse wall-clock timeout** + cell cap land with the
+  input-hardening slice (so a crafted doc can't pin a worker).
 - **Idempotency** — content-hash `job_id` + forward-only writes; re-delivery and
   re-upload can't double-process (proven by tests).
 - **Explicit failure** — unprocessable docs end `failed{stage}`, never silent.
