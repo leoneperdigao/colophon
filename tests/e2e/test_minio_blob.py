@@ -12,6 +12,8 @@ import pytest
 
 pytest.importorskip("minio")  # skip cleanly when the 'infra' extra isn't installed (CI)
 
+import urllib3.exceptions  # noqa: E402  (minio's HTTP layer; available once minio is)
+
 from app.adapters.outbound.blob.minio_blob import MinioBlobStore  # noqa: E402
 from app.application.ports.blob_store import BlobNotFound  # noqa: E402
 
@@ -26,7 +28,7 @@ def store() -> MinioBlobStore:
             bucket=os.getenv("MINIO_BUCKET", "colophon-test"),
             secure=False,
         )
-    except Exception as exc:  # not reachable -> opt-in test, skip
+    except urllib3.exceptions.MaxRetryError as exc:  # only "can't connect" -> opt-in skip
         pytest.skip(f"MinIO not reachable: {exc}")
 
 
