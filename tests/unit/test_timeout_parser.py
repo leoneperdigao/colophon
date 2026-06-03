@@ -27,6 +27,11 @@ class _BoomParser:
         raise ParseError("inner failure")
 
 
+class _RogueParser:
+    def parse(self, content: bytes, content_type: str, filename: str) -> Curated:
+        raise ValueError("some unstable internal detail")
+
+
 def test_returns_result_when_under_budget() -> None:
     curated = TimeoutParser(_FastParser(), timeout_seconds=1.0).parse(b"hello", "text/plain", "f")
     assert curated.text == "hello"
@@ -42,3 +47,12 @@ def test_propagates_inner_parse_error() -> None:
     with pytest.raises(ParseError) as exc_info:
         TimeoutParser(_BoomParser(), timeout_seconds=1.0).parse(b"x", "application/pdf", "f.pdf")
     assert "inner failure" in str(exc_info.value)
+
+
+def test_wraps_non_parse_error_in_stable_parse_error() -> None:
+    # A non-ParseError from the inner parser must not leak verbatim (contract + safety).
+    with pytest.raises(ParseError) as exc_info:
+        TimeoutParser(_RogueParser(), timeout_seconds=1.0).parse(b"x", "application/pdf", "f.pdf")
+    assert str(exc_info.value) == "could not parse the document"
+    assert "unstable internal detail" not in str(exc_info.value)
+    assert isinstance(exc_info.value.__cause__, ValueError)  # detail preserved in the chain

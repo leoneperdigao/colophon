@@ -31,10 +31,10 @@ class SpreadsheetParser:
             cell_count = 0
             for name in sheet_names:
                 for row in workbook[name].iter_rows(values_only=True):
-                    cells = [str(value) for value in row if value is not None]
-                    cell_count += len(cells)
+                    cell_count += len(row)  # total cells iterated (incl. blanks) — bound work
                     if cell_count > self._max_cells:
                         raise ParseError("spreadsheet exceeds the cell limit")
+                    cells = [str(value) for value in row if value is not None]
                     if cells:
                         lines.append("\t".join(cells))
         finally:

@@ -39,5 +39,10 @@ class TimeoutParser:
         if thread.is_alive():
             raise ParseError("parsing timed out")
         if error:
-            raise error[0]
+            failure = error[0]
+            if isinstance(failure, ParseError):
+                raise failure  # preserve the inner parser's stable message
+            raise ParseError("could not parse the document") from failure  # stabilise others
+        if not result:  # neither result nor error — unexpected; fail safe
+            raise ParseError("could not parse the document")
         return result[0]
