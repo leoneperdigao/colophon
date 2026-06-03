@@ -9,6 +9,16 @@ from app.config import settings
 
 
 def build_annotator() -> LLMClient:
-    """The real LLM stack: a bounded agent over LiteLLM (Anthropic or Ollama by env)."""
-    transport = LiteLLMTransport(model=settings.llm_model(), api_base=settings.llm_api_base())
+    """The real LLM stack: a bounded agent over LiteLLM (Anthropic or Ollama by env).
+
+    `LLM_MODEL=stub` selects the deterministic in-process StubLLM so the local
+    stack stays runnable with no model server (offline demos, CI smoke tests).
+    Real deployments set a provider model id (`anthropic/...`, `ollama/...`).
+    """
+    model = settings.llm_model()
+    if model == "stub":
+        from app.adapters.llm.stub import StubLLM
+
+        return StubLLM()
+    transport = LiteLLMTransport(model=model, api_base=settings.llm_api_base())
     return AnnotationAgent(transport)
