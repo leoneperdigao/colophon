@@ -74,7 +74,7 @@ class Container:
     def _build_blob() -> BlobStore:
         from app.adapters.outbound.blob.minio_blob import MinioBlobStore
 
-        return MinioBlobStore(**settings.minio_config())  # type: ignore[arg-type]
+        return MinioBlobStore(**settings.minio_config())
 
     @staticmethod
     def _build_store() -> AnnotationStore:

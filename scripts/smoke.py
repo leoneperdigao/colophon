@@ -37,13 +37,20 @@ def _sample(content_type: str) -> GoldSample:
     return next(s for s in build_gold_set() if s.content_type == content_type)
 
 
+def _check(condition: bool, message: str) -> None:
+    """Fail the smoke test with a non-zero exit. Unlike `assert`, this is never
+    stripped under `python -O` — important for the security-property check below."""
+    if not condition:
+        sys.exit(f"smoke: {message}")
+
+
 def _upload(client: httpx.Client, token: str, sample: GoldSample) -> str:
     resp = client.post(
         "/documents",
         headers={"Authorization": f"Bearer {token}"},
         files={"file": (sample.filename, sample.content, sample.content_type)},
     )
-    assert resp.status_code == 202, f"upload: {resp.status_code} {resp.text}"
+    _check(resp.status_code == 202, f"upload: {resp.status_code} {resp.text}")
     return str(resp.json()["job_id"])
 
 
@@ -51,7 +58,7 @@ def _poll(client: httpx.Client, token: str, job_id: str) -> dict[str, object]:
     deadline = time.monotonic() + POLL_TIMEOUT_S
     while time.monotonic() < deadline:
         resp = client.get(f"/annotations/{job_id}", headers={"Authorization": f"Bearer {token}"})
-        assert resp.status_code == 200, f"poll: {resp.status_code} {resp.text}"
+        _check(resp.status_code == 200, f"poll: {resp.status_code} {resp.text}")
         body: dict[str, object] = resp.json()
         if body["status"] in ("completed", "failed"):
             return body
@@ -60,12 +67,14 @@ def _poll(client: httpx.Client, token: str, job_id: str) -> dict[str, object]:
 
 
 def _assert_annotated(label: str, body: dict[str, object]) -> None:
-    if body["status"] != "completed":
-        sys.exit(f"smoke: {label} ended {body['status']} (error={body.get('error')})")
+    _check(
+        body["status"] == "completed", f"{label} ended {body['status']} (error={body.get('error')})"
+    )
     result = body["result"]
-    assert isinstance(result, dict), f"{label}: missing result"
+    _check(isinstance(result, dict), f"{label}: missing result")
+    assert isinstance(result, dict)  # narrow for the type checker (already verified above)
     for field in ("summary", "document_type", "key_entities", "language"):
-        assert field in result, f"{label}: annotation missing {field!r}"
+        _check(field in result, f"{label}: annotation missing {field!r}")
     print(
         f"  ✓ {label}: completed — type={result['document_type']!r}, "
         f"{len(result['key_entities'])} entities"
@@ -87,7 +96,7 @@ def main() -> None:
         cross = client.get(
             f"/annotations/{pdf_job}", headers={"Authorization": f"Bearer {token_b}"}
         )
-        assert cross.status_code == 404, f"cross-tenant leak: {cross.status_code} {cross.text}"
+        _check(cross.status_code == 404, f"cross-tenant leak: {cross.status_code} {cross.text}")
         print("  ✓ cross-tenant read of A's job by B -> 404")
     print("smoke: PASS")
 

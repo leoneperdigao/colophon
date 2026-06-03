@@ -53,11 +53,11 @@ services:
     environment: &app-env
       APP_PROFILE: local
       TENANT_TOKENS: ${TENANT_TOKENS:?set in .env}
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-colophon}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
-      DATABASE_URL: postgresql://${POSTGRES_USER:-colophon}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-colophon}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-colophon}:${RABBITMQ_PASSWORD:?set in .env}@rabbitmq:5672/
+      DATABASE_URL: postgresql://${POSTGRES_USER:-colophon}:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/${POSTGRES_DB:-colophon}
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?set in .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-colophon-raw}
       MINIO_SECURE: "false"
       LLM_MODEL: ${LLM_MODEL:-stub}
