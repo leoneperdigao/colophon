@@ -14,8 +14,9 @@ from app.domain.stage_result import Curated
 
 
 class SpreadsheetParser:
-    def __init__(self, *, max_sheets: int = 20) -> None:
+    def __init__(self, *, max_sheets: int = 20, max_cells: int = 1_000_000) -> None:
         self._max_sheets = max_sheets
+        self._max_cells = max_cells
 
     def parse(self, content: bytes, content_type: str, filename: str) -> Curated:
         try:
@@ -27,8 +28,12 @@ class SpreadsheetParser:
             if len(sheet_names) > self._max_sheets:
                 raise ParseError(f"spreadsheet exceeds the sheet limit ({len(sheet_names)} sheets)")
             lines: list[str] = []
+            cell_count = 0
             for name in sheet_names:
                 for row in workbook[name].iter_rows(values_only=True):
+                    cell_count += len(row)  # total cells iterated (incl. blanks) — bound work
+                    if cell_count > self._max_cells:
+                        raise ParseError("spreadsheet exceeds the cell limit")
                     cells = [str(value) for value in row if value is not None]
                     if cells:
                         lines.append("\t".join(cells))
