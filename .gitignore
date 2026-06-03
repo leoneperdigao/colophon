@@ -45,6 +45,9 @@ htmlcov/
 /data/
 *.log
 
+# ---- Downloaded robustness samples (fetched on demand, never committed) ----
+/samples/downloaded/
+
 # ---- OS / editor ----
 .DS_Store
 .idea/
