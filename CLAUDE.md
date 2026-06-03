@@ -74,8 +74,9 @@ artifacts and this project's constitution win.
 Python 3.12 · FastAPI · pytest · docker-compose (api + worker + rabbitmq + minio
 + postgres). **RabbitMQ** behind `Messaging` (queue = work, topic exchange =
 events, DLX = dead-letter) · **MinIO** behind `BlobStore` · **Postgres** behind
-`AnnotationStore` · **LiteLLM → Anthropic** behind `LLMClient` (tool-use for
-strict JSON, Haiku-tier model; model id + key in env, never in code).
+`AnnotationStore` · **LiteLLM → Anthropic (cloud) or Ollama (local)** behind
+`LLMClient`, provider chosen by `LLM_MODEL` (ADR-0009); strict-JSON via schema +
+validate/repair; model id + key in env, never in code.
 
 ## Architecture rules
 
