@@ -44,6 +44,22 @@ def test_all_grounded_keeps_confidence_and_empty_flags() -> None:
     assert out.key_entities[0].grounded is True
 
 
+def test_empty_curated_text_floors_confidence() -> None:
+    # A zero-text extraction (e.g. a scanned image-only PDF, OCR out of scope)
+    # has no basis for the default 0.9 — confidence must floor to 0.0, not 0.9.
+    ann = _annotation([], confidence=0.9)
+    out = ground_annotation(ann, "   \n\t  ")
+    assert out.confidence == 0.0
+
+
+def test_nonempty_text_with_no_entities_keeps_confidence() -> None:
+    # Only *empty* curated text floors; a real document that simply yielded no
+    # key entities still has a grounded summary, so confidence is untouched.
+    ann = _annotation([], confidence=0.9)
+    out = ground_annotation(ann, "A short memo with no extractable entities.")
+    assert out.confidence == 0.9
+
+
 def test_matching_is_case_insensitive() -> None:
     ann = _annotation([KeyEntity("org", "acme")])
     out = ground_annotation(ann, "Invoice from ACME")

@@ -7,7 +7,7 @@
 [![coverage 96%](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/leoneperdigao/colophon/actions/workflows/ci.yml)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
-Python 3.12 · FastAPI · RabbitMQ · MinIO · Postgres · LiteLLM (Anthropic / Ollama)
+Python 3.12 · FastAPI · RabbitMQ · MinIO · Postgres · LiteLLM (Anthropic / OpenAI / Ollama)
 
 An event-driven service that annotates documents with an LLM. `POST /documents`
 returns a **job id immediately**; a background worker runs the document through
@@ -53,7 +53,7 @@ The annotation retrieved via `GET /annotations/{job_id}`, for two tenants:
 | --- | --- | --- |
 | [Docker](https://docs.docker.com/get-docker/) **+ Compose** (or [Podman](https://podman.io/docs/installation) + `podman compose`) | Runs the stack (api + worker + rabbitmq + minio + postgres) | macOS: `brew install --cask docker` · or `brew install podman && podman machine init && podman machine start` |
 | [uv](https://docs.astral.sh/uv/) | Runs tests / eval / scripts on the host | `brew install uv` (or the installer below) |
-| *(optional)* a model — [Anthropic](https://docs.anthropic.com/en/api/getting-started) key **or** local [Ollama](https://ollama.com/download) | A real annotation provider | `export ANTHROPIC_API_KEY=…` · or `brew install ollama && ollama pull llama3.1` |
+| *(optional)* a model — an [Anthropic](https://docs.anthropic.com/en/api/getting-started) / OpenAI key **or** local [Ollama](https://ollama.com/download) | A real annotation provider | `export ANTHROPIC_API_KEY=…` (or `OPENAI_API_KEY=…`) · or `brew install ollama && ollama pull llama3.1` |
 
 ```bash
 # no Homebrew? install uv directly:
@@ -93,8 +93,9 @@ curl -s -o /dev/null -w "%{http_code}\n" \
   http://localhost:8000/annotations/$JOB -H "Authorization: Bearer tokenB"   # 404
 ```
 
-To switch from offline to a real model, set in `.env`:
-`LLM_MODEL=anthropic/claude-3-5-haiku-latest` + `ANTHROPIC_API_KEY=…`, or
+To switch from offline to a real model, set in `.env` (the provider is chosen by
+the model string): `LLM_MODEL=anthropic/claude-3-5-haiku-latest` + `ANTHROPIC_API_KEY=…`,
+`LLM_MODEL=gpt-4o-mini` + `OPENAI_API_KEY=…`, or
 `LLM_MODEL=ollama/llama3.1` + `LLM_API_BASE=http://host.docker.internal:11434`
 ([ADR-0009](docs/adr/0009-local-llm-via-ollama.md)).
 
@@ -120,6 +121,7 @@ To switch from offline to a real model, set in `.env`:
 | --- | --- | --- | --- |
 | `POST` | `/documents` | `Bearer <token>` | `202` `{ job_id, status: "queued" }` |
 | `GET` | `/annotations/{job_id}` | `Bearer <token>` | `200` `{ job_id, status, stage, result, error }` · `404` if not this tenant's |
+| `GET` | `/healthz` | none | `200` `{ status: "ok" }` — unauthenticated liveness probe |
 
 `POST` validates the upload (size + content-type), stores the raw bytes, creates
 the job row, enqueues work, and returns — all well under a request timeout. The
@@ -173,8 +175,8 @@ with side effects.** Document content is delimited and labelled as *untrusted
 data, not instructions*, and the agent has no ambient authority — so an indirect
 prompt injection cannot make it act
 ([ADR-0005](docs/adr/0005-untrusted-input-and-prompt-injection-defense.md)). One
-LiteLLM transport serves both Anthropic (cloud) and Ollama (local), chosen by the
-model string.
+LiteLLM transport serves Anthropic (cloud), OpenAI, or Ollama (local), chosen by
+the model string.
 
 ---
 
@@ -286,8 +288,11 @@ construction — free, exact labels) against thresholds:
 
 The eval re-runs the deterministic groundedness check itself rather than trusting
 the model's self-report, and entities are scored on `(type, value)` — not value
-alone. Low-confidence / ungrounded fields are flagged on the annotation for human
-review.
+alone — with the **entity type canonicalised** first, so a correct value under a
+synonymous label (`organization`≡`org`, `amount_due`≡`amount`) counts as a match
+rather than a vocabulary miss; the mapping is explicit, so a genuinely mistyped
+entity is still a miss ([ADR-0014](docs/adr/0014-synonym-aware-entity-type-scoring.md)).
+Low-confidence / ungrounded fields are flagged on the annotation for human review.
 
 **Groundedness** is normalization-aware containment of each extracted value in the
 curated text: it canonicalises numbers (`USD 1,500.00` ≡ `1500`) and folds `/`
@@ -296,9 +301,11 @@ for short values (so `IT` doesn't match inside `audit`, nor `1` inside `10`). Kn
 residual gap, by design: textual-month dates (`January 1, 2024` vs `2024-01-01`)
 and locale decimal commas flag ungrounded — the cheap next step is a per-locale
 date/number canonicaliser. **Confidence** is a deterministic heuristic, **not**
-model-derived: a `0.9` baseline scaled by the grounded fraction of entities — a
-proxy that surfaces fabrication, replaced in production by calibrated/logprob
-signals.
+model-derived: a `0.9` baseline scaled by the grounded fraction of entities, and
+**floored to `0` when the document yielded no extractable text** (e.g. a
+scanned image-only PDF — OCR is out of scope — so an empty extraction can't ride
+on the default) — a proxy that surfaces fabrication, replaced in production by
+calibrated/logprob signals.
 
 *Production eval plan (described, [ADR-0010](docs/adr/0010-load-testing-and-robustness.md)):*
 an **LLM-as-judge** for open-ended quality, **online** sampling with human
@@ -322,7 +329,7 @@ The ports make this a swap, not a rewrite
 | Worker compute | Container | Lambda (container image) via SQS | Deployment + KEDA (scale on queue depth) |
 | Inbound HTTP | uvicorn / FastAPI | API Gateway + Lambda (Mangum) | Service + Ingress |
 | Auth | Token → tenant map | API Gateway JWT authorizer / Cognito | Auth middleware / sidecar + IdP |
-| LLMClient | LiteLLM → Anthropic/Ollama | LiteLLM → Bedrock/Anthropic | LiteLLM gateway |
+| LLMClient | LiteLLM → Anthropic/OpenAI/Ollama | LiteLLM → Bedrock/Anthropic | LiteLLM gateway |
 | Provisioning | docker-compose | AWS CDK (`infra/`) | Helm / manifests |
 
 **Gotchas worth stating up front:** SQS visibility timeout must exceed worker
@@ -409,7 +416,7 @@ app/
 eval/             # gold-set scoring + thresholds (make eval)
 samples/          # gold-set generator + real-world robustness corpus downloader
 scripts/          # smoke, demo, render_report, make_media
-docs/adr/         # 13 Architecture Decision Records
+docs/adr/         # 14 Architecture Decision Records
 specs/            # Spec Kit artifacts (spec, plan, tasks, OpenAPI contract)
 ```
 
@@ -434,6 +441,7 @@ Execution-time decisions are recorded in [`docs/adr/`](docs/adr/):
 | [0011](docs/adr/0011-file-size-handling-and-scaling.md) | File-size handling & scaling |
 | [0012](docs/adr/0012-multi-client-customization-and-extension.md) | Multi-client customization & extension model |
 | [0013](docs/adr/0013-concurrency-and-idempotency-model.md) | Concurrency & idempotency model |
+| [0014](docs/adr/0014-synonym-aware-entity-type-scoring.md) | Synonym-aware entity-type scoring in the eval gate |
 
 ## Out of scope (documented, not built)
 

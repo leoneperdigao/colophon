@@ -86,3 +86,38 @@ def test_mistyped_entities_are_not_true_positives() -> None:
     assert report.document_type_accuracy == 1.0
     assert report.entity_precision < 1.0
     assert report.entity_recall < 1.0
+
+
+class _SynonymLLM:
+    """Correct values but synonymous type names (organization/invoice_date/amount_due)
+    instead of the gold vocabulary (org/date/amount) — what a real model emits."""
+
+    _SYNONYM = {"org": "organization", "date": "invoice_date", "amount": "amount_due"}
+
+    def __init__(self) -> None:
+        self._gold = {s.filename: s for s in build_gold_set()}
+
+    def annotate(self, curated: Curated, source_filename: str) -> Annotation:
+        sample = self._gold[source_filename]
+        entities = [
+            KeyEntity(type=self._SYNONYM.get(t, t), value=v, grounded=True)
+            for t, v in sample.key_entities
+        ]
+        return Annotation(
+            summary="",
+            document_type=sample.document_type,
+            key_entities=entities,
+            language="en",
+            source_filename=source_filename,
+            page_or_sheet_count=curated.page_or_sheet_count,
+            confidence=1.0,
+            extracted_at="2026-06-03T00:00:00Z",
+            ungrounded_fields=[],
+        )
+
+
+def test_synonymous_entity_types_count_as_matches() -> None:
+    # Correct values under synonymous type names must score as true positives —
+    # the gate measures extraction quality, not vocabulary conformance (ADR-0014).
+    report = evaluate(_SynonymLLM())
+    assert report.passes(Thresholds())

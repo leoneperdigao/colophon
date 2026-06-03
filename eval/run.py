@@ -14,6 +14,7 @@ from app.adapters.parsing.factory import build_document_parser
 from app.application.groundedness import ground_annotation
 from app.application.ports.document_parser import ParseError
 from app.application.ports.llm_client import LLMClient, LLMError
+from eval.entity_types import canonical_entity_type
 from eval.metrics import Prediction, Report, Thresholds, compute_report
 from samples.generate import build_gold_set
 
@@ -23,8 +24,10 @@ def _norm(value: str) -> str:
 
 
 def _entity_key(entity_type: str, value: str) -> str:
-    # Score by (type, value) so a mistyped entity is NOT a true positive.
-    return f"{_norm(entity_type)}\x00{_norm(value)}"
+    # Score by (type, value) so a mistyped entity is NOT a true positive — but
+    # canonicalise the type first, so a correct value under a synonymous type name
+    # ("organization" for "org", "amount_due" for "amount") still matches (ADR-0014).
+    return f"{canonical_entity_type(entity_type)}\x00{_norm(value)}"
 
 
 def evaluate(llm: LLMClient) -> Report:
