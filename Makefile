@@ -1,4 +1,4 @@
-.PHONY: install test lint eval samples up up-d down smoke
+.PHONY: install test lint eval samples up up-d down smoke media
 
 install:        ## sync deps (add extras: uv sync --extra llm --extra infra --extra parsing)
 	uv sync --dev
@@ -28,3 +28,6 @@ down:
 
 smoke:          ## end-to-end check against a running stack (two tenants, real PDF + xlsx)
 	uv run python scripts/smoke.py
+
+media:          ## regenerate README media (demo.gif via VHS + report.png via headless Chrome)
+	scripts/make_media.sh
