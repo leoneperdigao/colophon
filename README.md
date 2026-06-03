@@ -453,19 +453,8 @@ service produces for each upload: a summary, a type, key entities, language — 
 colophon for every document, generated on demand. Hence the name. (This section
 is, fittingly, the README's own.)
 
-**On process (and AI assistance).** The brief permits any tools, so to be straight
-about it: I built this with **[Claude Code](https://www.anthropic.com/claude-code)**
-under my direction, using two frameworks in distinct phases —
-**[GitHub Spec Kit](https://github.com/github/spec-kit)** to *author* the committed
-artifacts (constitution → spec → plan → tasks → the OpenAPI contract) and the
-**[Superpowers](https://github.com/obra/superpowers)** plugin to *execute* against
-that task list (TDD red→green→refactor, subagents along the ports, verification
-before completion). The split is deliberate — Spec Kit owns the *what/why*,
-Superpowers the *how* — and it's documented in `CLAUDE.md`. I drove the
-architecture, the tradeoffs, and the reviews; the assistant accelerated the typing,
-docs, diagrams, and test scaffolding. That's why the artifact count (13 ADRs, the
-Spec Kit specs, the C4 + pipeline diagrams, the demo media) is higher than unaided
-eight-hour hand-output — the decisions are mine and I can defend each from first
-principles; the volume is leverage, not padding. Restraint was still the rule: the
-*built* surface is a deliberately thin, tested, runnable slice, and everything
-advanced is marked "documented, not built."
+**Built with** [Claude Code](https://www.anthropic.com/claude-code), using
+[GitHub Spec Kit](https://github.com/github/spec-kit) to author the specs
+(constitution → spec → plan → tasks) and the
+[Superpowers](https://github.com/obra/superpowers) plugin to execute them
+(TDD, subagents along the ports). See [`CLAUDE.md`](CLAUDE.md).
