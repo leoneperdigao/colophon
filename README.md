@@ -52,15 +52,17 @@ The annotation retrieved via `GET /annotations/{job_id}`, for two tenants:
 | Tool | Why | Install |
 | --- | --- | --- |
 | [Docker](https://docs.docker.com/get-docker/) **+ Compose** (or [Podman](https://podman.io/docs/installation) + `podman compose`) | Runs the stack (api + worker + rabbitmq + minio + postgres) | macOS: `brew install --cask docker` · or `brew install podman && podman machine init && podman machine start` |
-| [uv](https://docs.astral.sh/uv/) | Runs tests / eval / scripts on the host | `curl -LsSf https://astral.sh/uv/install.sh \| sh` (or `brew install uv`) |
+| [uv](https://docs.astral.sh/uv/) | Runs tests / eval / scripts on the host | `brew install uv` (or the installer below) |
 | *(optional)* a model — [Anthropic](https://docs.anthropic.com/en/api/getting-started) key **or** local [Ollama](https://ollama.com/download) | A real annotation provider | `export ANTHROPIC_API_KEY=…` · or `brew install ollama && ollama pull llama3.1` |
+
+```bash
+# no Homebrew? install uv directly:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+git --version && docker compose version && uv --version   # quick sanity check
+```
 
 The stack ships an **offline `stub` model** (`LLM_MODEL=stub`), so you can run the
 whole thing **with no API key and no model server**.
-
-```bash
-git --version && docker compose version && uv --version   # quick sanity check
-```
 
 ```bash
 git clone https://github.com/leoneperdigao/colophon && cd colophon

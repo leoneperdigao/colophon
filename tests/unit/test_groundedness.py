@@ -88,3 +88,12 @@ def test_slash_dates_match_dash_dates() -> None:
 def test_textual_month_dates_are_a_known_gap() -> None:
     # Not reconciled by the cheap normaliser; flags ungrounded by design (documented).
     assert _grounded("2024-01-01", "dated January 1, 2024") is False
+
+
+def test_locale_decimal_comma_never_falsely_grounds() -> None:
+    # "1500,00" must NOT canonicalize to 150000, nor "1.000,00" to 1, and match a
+    # different number in the text — locale decimal-comma flags ungrounded (documented).
+    assert _grounded("1500,00", "amount 150000 units") is False
+    assert _grounded("1.000,00", "total 1 item") is False
+    # but a verbatim occurrence still grounds
+    assert _grounded("1.000,00", "balance: 1.000,00 EUR") is True

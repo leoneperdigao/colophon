@@ -30,6 +30,7 @@ from app.domain.key_entity import KeyEntity
 
 _THOUSANDS = re.compile(r"(?<=\d),(?=\d)")  # comma between digits: 1,000 -> 1000
 _DATE_SLASH = re.compile(r"(?<=\d)/(?=\d)")  # slash between digits: 2026/01/15 -> 2026-01-15
+_LOCALE_DECIMAL = re.compile(r",\d{1,2}(?!\d)")  # decimal comma: 1500,00 / 1.000,00 / 12,5
 _SHORT = 4  # values shorter than this must match on a boundary, not a raw substring
 
 
@@ -61,10 +62,17 @@ def _contains(needle: str, haystack: str) -> bool:
     return re.search(rf"(?<![0-9a-z]){re.escape(needle)}(?![0-9a-z])", haystack) is not None
 
 
-def _is_grounded(value: str, haystack: str) -> bool:
+def _is_grounded(value: str, haystack: str, raw: str) -> bool:
     stripped = value.strip()
     if not stripped:
         return False
+    if _LOCALE_DECIMAL.search(stripped):
+        # Locale decimal-comma ("1500,00", "1.000,00") is ambiguous against US
+        # thousands grouping — numeric normalization would mangle it (1500,00 ->
+        # 150000) and could falsely ground. Documented non-goal: only a *verbatim*
+        # case-insensitive match grounds it (checked against the raw text), so a
+        # different number can never match.
+        return stripped.casefold() in raw
     if _contains(_normalize(stripped), haystack):
         return True
     number = _canonical_number(stripped)
@@ -75,11 +83,12 @@ def ground_annotation(annotation: Annotation, curated_text: str) -> Annotation:
     """Return a copy with entity `grounded` flags, `ungrounded_fields`, and an
     adjusted `confidence` (lowered by the fraction of ungrounded entities)."""
     haystack = _normalize(curated_text)
+    raw = curated_text.casefold()
 
     checked: list[KeyEntity] = []
     ungrounded: list[str] = []
     for entity in annotation.key_entities:
-        is_grounded = _is_grounded(entity.value, haystack)
+        is_grounded = _is_grounded(entity.value, haystack, raw)
         checked.append(replace(entity, grounded=is_grounded))
         if not is_grounded:
             ungrounded.append(entity.value)
