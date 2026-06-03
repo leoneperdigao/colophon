@@ -31,6 +31,10 @@ def test_rejects_documents_over_the_page_cap() -> None:
         PdfParser(max_pages=2).parse(_make_pdf(["a", "b", "c"]), PDF, "big.pdf")
 
 
-def test_corrupt_pdf_raises_parse_error() -> None:
-    with pytest.raises(ParseError):
-        PdfParser().parse(b"this is not a pdf", PDF, "bad.pdf")
+def test_corrupt_pdf_raises_user_safe_parse_error() -> None:
+    with pytest.raises(ParseError) as exc_info:
+        PdfParser().parse(b"this is not a pdf", PDF, "SECRET-NAME.pdf")
+    message = str(exc_info.value)
+    assert message == "could not read the PDF document"  # stable, no internals
+    assert "SECRET-NAME" not in message  # client-supplied filename not echoed
+    assert exc_info.value.__cause__ is not None  # detail preserved as chained cause (logs only)

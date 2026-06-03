@@ -19,10 +19,10 @@ class PdfParser:
             reader = PdfReader(BytesIO(content))
             page_count = len(reader.pages)
             if page_count > self._max_pages:
-                raise ParseError(f"PDF {filename} has {page_count} pages (cap {self._max_pages})")
+                raise ParseError(f"PDF exceeds the page limit ({page_count} pages)")
             text = "\n".join((page.extract_text() or "") for page in reader.pages)
         except ParseError:
             raise
-        except Exception as exc:  # any malformed/abusive input -> graceful parse failure
-            raise ParseError(f"cannot read PDF {filename}: {exc}") from exc
+        except Exception as exc:  # malformed/abusive input -> stable message; detail stays in cause
+            raise ParseError("could not read the PDF document") from exc
         return Curated(text=text, page_or_sheet_count=page_count, structure={"pages": page_count})

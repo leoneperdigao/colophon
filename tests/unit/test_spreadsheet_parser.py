@@ -41,6 +41,10 @@ def test_counts_sheets_and_enforces_cap() -> None:
         SpreadsheetParser(max_sheets=1).parse(content, XLSX, "f.xlsx")
 
 
-def test_corrupt_spreadsheet_raises_parse_error() -> None:
-    with pytest.raises(ParseError):
-        SpreadsheetParser().parse(b"not a spreadsheet", XLSX, "bad.xlsx")
+def test_corrupt_spreadsheet_raises_user_safe_parse_error() -> None:
+    with pytest.raises(ParseError) as exc_info:
+        SpreadsheetParser().parse(b"not a spreadsheet", XLSX, "SECRET-NAME.xlsx")
+    message = str(exc_info.value)
+    assert message == "could not read the spreadsheet document"  # stable, no internals
+    assert "SECRET-NAME" not in message  # client-supplied filename not echoed
+    assert exc_info.value.__cause__ is not None  # detail preserved as chained cause (logs only)

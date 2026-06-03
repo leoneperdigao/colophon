@@ -27,9 +27,19 @@ def log_event(
     job_id: str,
     stage: str | None = None,
     level: int = logging.INFO,
+    exc_info: BaseException | None = None,
 ) -> None:
-    """Emit a structured event with tenant/job/stage context."""
-    logger.log(level, event, extra={"tenant_id": tenant_id, "job_id": job_id, "stage": stage})
+    """Emit a structured event with tenant/job/stage context.
+
+    `exc_info` (an exception, never surfaced to clients) records the underlying
+    cause chain in logs for debugging.
+    """
+    logger.log(
+        level,
+        event,
+        extra={"tenant_id": tenant_id, "job_id": job_id, "stage": stage},
+        exc_info=exc_info,
+    )
 
 
 class JsonFormatter(logging.Formatter):

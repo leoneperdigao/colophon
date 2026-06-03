@@ -20,14 +20,12 @@ class SpreadsheetParser:
     def parse(self, content: bytes, content_type: str, filename: str) -> Curated:
         try:
             workbook = load_workbook(BytesIO(content), data_only=True, read_only=True)
-        except Exception as exc:  # malformed/abusive input -> graceful parse failure
-            raise ParseError(f"cannot read spreadsheet {filename}: {exc}") from exc
+        except Exception as exc:  # malformed/abusive input -> stable message; detail stays in cause
+            raise ParseError("could not read the spreadsheet document") from exc
         try:
             sheet_names = list(workbook.sheetnames)
             if len(sheet_names) > self._max_sheets:
-                raise ParseError(
-                    f"spreadsheet {filename} has {len(sheet_names)} sheets (cap {self._max_sheets})"
-                )
+                raise ParseError(f"spreadsheet exceeds the sheet limit ({len(sheet_names)} sheets)")
             lines: list[str] = []
             for name in sheet_names:
                 for row in workbook[name].iter_rows(values_only=True):
