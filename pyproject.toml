@@ -31,13 +31,41 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
     "fpdf2>=2.7",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --cov=app --cov-report=term-missing"
 filterwarnings = [
     "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
+]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = [
+    # Exercised by the opt-in e2e suite against real containers (MinIO / Postgres /
+    # RabbitMQ), not the no-infra CI run — measuring them here would understate the
+    # infra-free core's coverage. See tests/e2e/.
+    "app/adapters/outbound/blob/minio_blob.py",
+    "app/adapters/outbound/store/postgres_store.py",
+    "app/adapters/outbound/messaging/rabbitmq.py",
+    # The real LLM transport boundary (calls the provider) — exercised by `make eval`
+    # with a model, not the no-model unit run.
+    "app/adapters/llm/litellm_transport.py",
+    # Process entrypoints — wiring only, run by uvicorn / `python -m app.worker`.
+    "app/asgi.py",
+    "app/worker/__main__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 90
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
 ]
 
 [tool.ruff]

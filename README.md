@@ -4,6 +4,7 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/release/python-3120/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![mypy: strict](https://img.shields.io/badge/mypy-strict-2A6DB2)](https://mypy-lang.org/)
+[![coverage 96%](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/leoneperdigao/colophon/actions/workflows/ci.yml)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 Python 3.12 · FastAPI · RabbitMQ · MinIO · Postgres · LiteLLM (Anthropic / Ollama)
@@ -90,7 +91,7 @@ To switch from offline to a real model, set in `.env`:
 | --- | --- |
 | `make up` / `up-d` | Bring the stack up (foreground / detached) |
 | `make smoke` | End-to-end check against a running stack |
-| `make test` | Unit + integration tests — **no infra**, runs in seconds |
+| `make test` | Unit + integration tests + coverage — **no infra**, runs in seconds |
 | `make eval` | Gold-set quality gate (needs a model) |
 | `make lint` | `ruff` + `ruff format --check` + `mypy --strict` |
 | `make media` | Regenerate the demo GIF + report PNG from a live stack |
@@ -336,7 +337,7 @@ commands the full picture.
 ## Testing
 
 ```bash
-make test     # unit + integration against fakes — no infra, seconds
+make test     # unit + integration against fakes + coverage — no infra, seconds
 make smoke    # full pipeline on real infra (stack must be up)
 make eval     # gold-set thresholds + groundedness (needs a model)
 make lint     # ruff + ruff format --check + mypy --strict
@@ -347,6 +348,14 @@ RED→GREEN→REFACTOR). Infra adapters (MinIO / Postgres / RabbitMQ) have opt-i
 tests that **skip cleanly** when the service isn't reachable, so CI stays
 infra-free; each was validated against a real container (including
 retry → DLQ).
+
+**Coverage.** `pytest --cov` runs by default and CI **fails under 90%**
+(currently ~96%). The number scopes the **infra-free, model-free core** — the real
+adapters that can only run against external services (MinIO / Postgres / RabbitMQ
+blob-store/store/queue, the LiteLLM transport) and the process entrypoints are
+omitted from the unit number because they're covered by the opt-in e2e suite and
+`make eval`, not the CI run. Omissions are listed explicitly in
+[`pyproject.toml`](pyproject.toml) (`[tool.coverage.run] omit`).
 
 ---
 

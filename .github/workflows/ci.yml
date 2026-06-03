@@ -39,7 +39,7 @@ jobs:
       - name: Types (mypy)
         run: uv run mypy app samples eval scripts
 
-      - name: Tests (pytest)
+      - name: Tests + coverage (pytest, gate ≥ 90%)
         run: uv run pytest
 
   audit:
