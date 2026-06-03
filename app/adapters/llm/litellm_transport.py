@@ -8,9 +8,23 @@ The provider is chosen by the model string (`anthropic/claude-...` vs
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from app.application.ports.llm_transport import TransportError
+
+# Provider error messages can echo credentials (OpenAI auth errors include the key:
+# "Incorrect API key provided: sk-…"). Redact known secret shapes before the message
+# is interpolated into an error that the pipeline logs via the exception chain.
+_SECRET_PATTERNS = (
+    re.compile(r"sk-[A-Za-z0-9._-]{6,}"),  # OpenAI / Anthropic API keys (incl. sk-ant-, sk-proj-)
+    re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._\-]+"),  # bearer tokens (keep the "Bearer" label)
+)
+
+
+def _redact_secrets(text: str) -> str:
+    text = _SECRET_PATTERNS[0].sub("«redacted»", text)
+    return _SECRET_PATTERNS[1].sub(r"\1«redacted»", text)
 
 
 def parse_json_object(content: str | None) -> dict[str, Any]:
@@ -74,9 +88,11 @@ class LiteLLMTransport:
             response = litellm.completion(**kwargs)
         except Exception as exc:
             # Preserve the provider's message (bad model id, auth, billing, timeout)
-            # so the failure is diagnosable in the logs. The agent wraps this in a
-            # generic LLMError, so raw provider detail never reaches API clients.
-            raise TransportError(f"LLM call failed: {type(exc).__name__}: {exc}") from exc
+            # so the failure is diagnosable in the logs — with credentials redacted.
+            # The agent also wraps this in a generic LLMError, so raw provider detail
+            # never reaches API clients.
+            detail = _redact_secrets(str(exc))
+            raise TransportError(f"LLM call failed: {type(exc).__name__}: {detail}") from exc
 
         try:
             content = response.choices[0].message.content

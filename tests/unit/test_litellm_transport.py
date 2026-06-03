@@ -39,6 +39,27 @@ def test_provider_error_detail_is_surfaced_in_the_transport_error(
     assert excinfo.value.__cause__ is not None  # original exception chained
 
 
+def test_provider_error_secrets_are_redacted(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Provider auth errors echo secrets (OpenAI: "Incorrect API key provided: sk-…").
+    # The message reaches the logs via the exception chain, so keys/bearer tokens
+    # must be redacted before interpolation — type and non-secret detail stay.
+    def boom(**kwargs: object) -> object:
+        raise ValueError(
+            "Incorrect API key provided: sk-proj-ABCDEF1234567890. "
+            "Authorization: Bearer abc.def.ghijkl"
+        )
+
+    _fake_litellm(monkeypatch, boom)
+    transport = LiteLLMTransport(model="gpt-x")
+    with pytest.raises(TransportError) as excinfo:
+        transport.generate(system="s", user="u", schema={})
+    message = str(excinfo.value)
+    assert "sk-proj-ABCDEF1234567890" not in message  # API key redacted
+    assert "abc.def.ghijkl" not in message  # bearer token redacted
+    assert "ValueError" in message  # type kept for triage
+    assert "Incorrect API key provided" in message  # non-secret detail kept
+
+
 def test_parses_plain_json_object() -> None:
     assert parse_json_object('{"a": 1, "b": "x"}') == {"a": 1, "b": "x"}
 
