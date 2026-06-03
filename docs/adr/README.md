@@ -22,3 +22,6 @@ ADRs are **immutable once Accepted** — to change one, add a new ADR that
 | [0003](./0003-structured-logging-stdlib-now-otel-later.md) | Structured logging: stdlib now, structlog + OpenTelemetry later | Accepted |
 | [0004](./0004-retry-and-dead-lettering-are-broker-native.md) | Retry & dead-lettering are broker-native | Accepted |
 | [0005](./0005-untrusted-input-and-prompt-injection-defense.md) | Untrusted-input handling & prompt-injection defense | Accepted |
+| [0006](./0006-ports-make-cloud-a-deploy-time-choice.md) | Ports make the cloud target a deploy-time choice | Accepted |
+| [0007](./0007-single-bounded-annotation-agent.md) | Single bounded annotation agent, not multi-agent | Accepted |
+| [0008](./0008-tenancy-isolation-pooled-now-siloed-documented.md) | Tenancy isolation: pooled now, siloed documented | Accepted |
