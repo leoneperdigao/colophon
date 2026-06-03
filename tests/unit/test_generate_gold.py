@@ -21,6 +21,7 @@ def test_includes_a_multi_sheet_workbook() -> None:
         for s in build_gold_set()
         if s.document_type == "spreadsheet"
     ]
+    assert sheet_counts, "gold set has no spreadsheet samples"
     assert max(sheet_counts) >= 2
 
 
