@@ -29,3 +29,4 @@ ADRs are **immutable once Accepted** — to change one, add a new ADR that
 | [0010](./0010-load-testing-and-robustness.md) | Load testing & robustness strategy | Accepted |
 | [0011](./0011-file-size-handling-and-scaling.md) | File-size handling & scaling | Accepted |
 | [0012](./0012-multi-client-customization-and-extension.md) | Multi-client customization & extension model | Accepted |
+| [0013](./0013-concurrency-and-idempotency-model.md) | Concurrency & idempotency model | Accepted |

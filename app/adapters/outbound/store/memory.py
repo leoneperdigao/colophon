@@ -27,6 +27,12 @@ class InMemoryAnnotationStore:
         return copy.deepcopy(job) if job is not None else None
 
     def update_job(self, job: Job) -> None:
+        # Terminal jobs are immutable: the first completed/failed write wins, so a
+        # redelivered/concurrent worker cannot clobber a finished result (mirrors the
+        # Postgres adapter's conditional UPDATE). See ADR-0013.
+        existing = self._jobs.get((job.tenant_id, job.job_id))
+        if existing is not None and existing.is_terminal:
+            return
         self._jobs[(job.tenant_id, job.job_id)] = copy.deepcopy(job)
 
     def put_curated(self, tenant_id: str, job_id: str, curated: Curated) -> None:

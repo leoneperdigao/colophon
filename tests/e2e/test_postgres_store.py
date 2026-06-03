@@ -76,6 +76,28 @@ def test_failed_job_persists_stage_and_error(store: PostgresAnnotationStore) -> 
     assert reloaded.error is not None and reloaded.error.stage is Stage.CURATED
 
 
+def test_terminal_job_is_immutable(store: PostgresAnnotationStore) -> None:
+    # ADR-0013: once completed, a redelivered/concurrent worker's UPDATE is a no-op
+    # (conditional write), so a finished result can't be clobbered.
+    job_id = uuid.uuid4().hex
+    job = _job("t1", job_id)
+    store.create_job(job)
+    job.start()
+    job.advance_to(Stage.CURATED)
+    job.advance_to(Stage.ANNOTATED)
+    job.complete()
+    store.update_job(job)  # -> completed
+
+    intruder = _job("t1", job_id)
+    intruder.start()  # processing
+    store.update_job(intruder)  # must NOT overwrite the completed row
+
+    reloaded = store.get_job("t1", job_id)
+    assert reloaded is not None
+    assert reloaded.status is Status.COMPLETED
+    assert reloaded.stage is Stage.ANNOTATED
+
+
 def test_get_job_is_tenant_scoped(store: PostgresAnnotationStore) -> None:
     job_id = uuid.uuid4().hex
     store.create_job(_job("tenant-a", job_id))
