@@ -1,0 +1,21 @@
+"""The gold set's labels must be grounded in (extractable from) the documents."""
+
+from __future__ import annotations
+
+from app.adapters.parsing.factory import build_document_parser
+from samples.generate import build_gold_set
+
+
+def test_gold_set_is_nonempty_and_typed() -> None:
+    gold = build_gold_set()
+    assert len(gold) >= 3
+    assert {s.document_type for s in gold} >= {"invoice", "report", "spreadsheet"}
+
+
+def test_every_label_is_extractable_from_its_document() -> None:
+    parser = build_document_parser()
+    for sample in build_gold_set():
+        curated = parser.parse(sample.content, sample.content_type, sample.filename)
+        haystack = curated.text.casefold()
+        for _entity_type, value in sample.key_entities:
+            assert value.casefold() in haystack, f"{value!r} not found in {sample.filename}"
