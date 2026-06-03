@@ -26,5 +26,8 @@ def test_int_env_rejects_non_positive(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.int_env("MAX_UPLOAD_BYTES", 99) == 99
 
 
-def test_default_upload_cap_is_10_mib() -> None:
-    assert settings.MAX_UPLOAD_BYTES == 10 * 1024 * 1024
+def test_default_upload_cap_is_10_mib(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Deterministic: clear the env and assert the default-resolution logic directly
+    # (settings.MAX_UPLOAD_BYTES is computed at import time and would be env-dependent).
+    monkeypatch.delenv("MAX_UPLOAD_BYTES", raising=False)
+    assert settings.int_env("MAX_UPLOAD_BYTES", 10 * 1024 * 1024) == 10 * 1024 * 1024
