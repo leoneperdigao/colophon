@@ -44,6 +44,19 @@ def _xlsx(rows: list[list[str]]) -> bytes:
     return buffer.getvalue()
 
 
+def _xlsx_sheets(sheets: list[tuple[str, list[list[str]]]]) -> bytes:
+    """Build a workbook with explicitly named sheets (multi-sheet coverage)."""
+    workbook = Workbook()
+    workbook.remove(workbook.active)  # drop the default sheet; name every sheet ourselves
+    for title, rows in sheets:
+        sheet = workbook.create_sheet(title=title)
+        for row in rows:
+            sheet.append(row)
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
 def build_gold_set() -> list[GoldSample]:
     return [
         GoldSample(
@@ -101,6 +114,63 @@ def build_gold_set() -> list[GoldSample]:
                 ("org", "Umbrella Corp"),
                 ("amount", "USD 1500"),
                 ("date", "2026-02-02"),
+            ),
+        ),
+        # A second invoice — denser text (an invoice number that is deliberately
+        # NOT a gold entity), so extraction must pick the labelled fields out of noise.
+        GoldSample(
+            content=_pdf(
+                "INVOICE\n"
+                "From: Stark Industries\n"
+                "Invoice number: INV-2026-0042\n"
+                "Invoice date: 2026-04-20\n"
+                "Amount due: USD 9875\n"
+            ),
+            content_type=PDF,
+            filename="gold-invoice-002.pdf",
+            document_type="invoice",
+            key_entities=(
+                ("org", "Stark Industries"),
+                ("date", "2026-04-20"),
+                ("amount", "USD 9875"),
+            ),
+        ),
+        # A second report with two distinct organisations — tests multi-entity
+        # extraction of the same type (org) from one document.
+        GoldSample(
+            content=_pdf(
+                "Annual Financial Report\n"
+                "Prepared by Wayne Enterprises\n"
+                "Audited by Daily Planet Auditors\n"
+                "Fiscal year ending 2026-12-31\n"
+                "Net revenue: USD 12000\n"
+            ),
+            content_type=PDF,
+            filename="gold-report-002.pdf",
+            document_type="report",
+            key_entities=(
+                ("org", "Wayne Enterprises"),
+                ("org", "Daily Planet Auditors"),
+                ("date", "2026-12-31"),
+                ("amount", "USD 12000"),
+            ),
+        ),
+        # A multi-sheet workbook — entities spread across sheets, so a correct
+        # extraction depends on the parser concatenating every sheet (sheet-cap path).
+        GoldSample(
+            content=_xlsx_sheets(
+                [
+                    ("Summary", [["Client", "Cyberdyne Systems"], ["Period", "2026-07-15"]]),
+                    ("Transactions", [["Item", "Amount"], ["Subscription", "USD 7300"]]),
+                ]
+            ),
+            content_type=XLSX,
+            filename="gold-sheet-002.xlsx",
+            document_type="spreadsheet",
+            key_entities=(
+                ("org", "Cyberdyne Systems"),
+                ("date", "2026-07-15"),
+                ("amount", "USD 7300"),
             ),
         ),
     ]
