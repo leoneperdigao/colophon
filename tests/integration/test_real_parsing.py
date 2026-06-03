@@ -19,9 +19,7 @@ from app.adapters.outbound.blob.memory import InMemoryBlobStore
 from app.adapters.outbound.messaging.memory import InMemoryMessaging
 from app.adapters.outbound.store.memory import InMemoryAnnotationStore
 from app.adapters.parsing.content_types import PDF, XLSX
-from app.adapters.parsing.pdf import PdfParser
-from app.adapters.parsing.router import DocumentParserRouter
-from app.adapters.parsing.spreadsheet import SpreadsheetParser
+from app.adapters.parsing.factory import build_document_parser
 from app.config.container import Container
 from app.worker.main import run as run_worker
 
@@ -34,7 +32,7 @@ def _container() -> Container:
         blob=InMemoryBlobStore(),
         store=InMemoryAnnotationStore(),
         messaging=InMemoryMessaging(),
-        parser=DocumentParserRouter(pdf=PdfParser(), spreadsheet=SpreadsheetParser()),
+        parser=build_document_parser(),  # timeout(router(pdf, spreadsheet)) — the real stack
         llm=StubLLM(),
     )
 
