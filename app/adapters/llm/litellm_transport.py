@@ -72,8 +72,11 @@ class LiteLLMTransport:
 
         try:
             response = litellm.completion(**kwargs)
-        except Exception as exc:  # pragma: no cover - network/provider failure
-            raise TransportError("LLM call failed") from exc
+        except Exception as exc:
+            # Preserve the provider's message (bad model id, auth, billing, timeout)
+            # so the failure is diagnosable in the logs. The agent wraps this in a
+            # generic LLMError, so raw provider detail never reaches API clients.
+            raise TransportError(f"LLM call failed: {type(exc).__name__}: {exc}") from exc
 
         try:
             content = response.choices[0].message.content

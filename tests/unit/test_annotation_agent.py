@@ -99,6 +99,21 @@ def test_transport_failure_raises_llm_error() -> None:
         _agent(_Boom()).annotate(CURATED, "f.pdf")
 
 
+def test_transport_detail_does_not_leak_into_the_client_facing_error() -> None:
+    # The transport surfaces provider detail (for the logs); the agent must wrap it
+    # in a generic LLMError so raw provider internals never reach the API client.
+    secret_detail = "AuthenticationError: invalid api key sk-LEAK"
+
+    class _Boom:
+        def generate(self, *, system: str, user: str, schema: dict[str, Any]) -> dict[str, Any]:
+            raise TransportError(f"LLM call failed: {secret_detail}")
+
+    with pytest.raises(LLMError) as excinfo:
+        _agent(_Boom()).annotate(CURATED, "f.pdf")
+    assert secret_detail not in str(excinfo.value)  # generic message only
+    assert excinfo.value.__cause__ is not None  # detail preserved on the chain (logged)
+
+
 def test_default_extracted_at_is_z_suffixed_utc() -> None:
     transport = FakeTransport(
         classify={"document_type": "report"},
