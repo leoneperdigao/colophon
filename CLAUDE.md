@@ -16,9 +16,10 @@ Read the plan before implementing.
 
 ## Source of truth (read before doing anything)
 
-- **`PLAN.md`** — the approved design (v7). **The design is resolved. Do not
-  re-brainstorm or re-litigate architecture.** If a skill wants to reopen a
-  decision already settled here, `PLAN.md` is the decision of record.
+- **`specs/001-document-annotation/plan.md`** (with `research.md`) — the resolved
+  technical design. **The design is resolved. Do not re-brainstorm or re-litigate
+  architecture.** If a skill wants to reopen a decision already settled there, the
+  committed plan + `.specify/memory/constitution.md` are the decision of record.
 - **`docs/claude_code_kickoff.md`** — execution brief (must-build slice, out-of-scope list, build order).
 - **`docs/speckit_seed.md`** — decisions mapped to each Spec Kit command.
 - **`.specify/memory/constitution.md`** — project constitution (fill via `/speckit-constitution`).
@@ -47,8 +48,9 @@ Run the skills in order, feeding the matching section of `docs/speckit_seed.md`:
 Superpowers implements the task list and **regenerates none of the design**.
 Map the skills to the work:
 
-- **Skip `superpowers:brainstorming`** — design is resolved in `PLAN.md`; do not
-  reopen it. Use it only for a genuinely new, unspecified sub-problem.
+- **Skip `superpowers:brainstorming`** — design is resolved in the committed plan
+  (`specs/001-document-annotation/plan.md`); do not reopen it. Use it only for a
+  genuinely new, unspecified sub-problem.
 - **Do NOT use `superpowers:writing-plans`** — Spec Kit's `tasks.md` *is* the
   plan; re-planning is the two frameworks fighting.
 - `superpowers:executing-plans` / `superpowers:subagent-driven-development` —
@@ -168,7 +170,7 @@ Short version:
 /speckit-plan           # → §4
 /speckit-tasks          # → §5  (must-build slice only; do NOT /speckit-implement)
 
-# Later, once the app exists (see PLAN.md):
+# Later, once the app exists (see specs/001-document-annotation/quickstart.md):
 docker-compose up        # api + worker + rabbitmq + minio + postgres
 pytest                   # unit (fakes, no infra) + e2e + cross-tenant test
 make eval                # gold-set thresholds + groundedness check
@@ -179,4 +181,5 @@ make eval                # gold-set thresholds + groundedness check
 `docker-compose up`; upload a sample PDF and a spreadsheet under two different
 tenant tokens; poll the job; get a valid annotation; cross-tenant lookup returns
 404; `make eval` passes its thresholds; unit + e2e tests green; README covers the
-`PLAN.md` §14 checklist including the deferred items as "documented, not built."
+full submission checklist (decisions & tradeoffs, production-readiness, security,
+evaluation, cloud migration) including the deferred items as "documented, not built."
